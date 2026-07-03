@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistente Coreográfico Pro | Wally</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="lib/docx_umd.js"></script>
+    <script src="lib/FileSaver.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i data-lucide="music"></i>
+                <span>Wally<span>AI</span></span>
+            </div>
+            <nav>
+                <button class="nav-item active" id="btn-new">
+                    <i data-lucide="plus-circle"></i> Nueva Coreo
+                </button>
+                <button class="nav-item" id="btn-history">
+                    <i data-lucide="history"></i> Historial
+                </button>
+                <button class="nav-item" id="btn-settings">
+                    <i data-lucide="settings"></i> Configuración
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <p>Baila con Wally v1.1</p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header>
+                <h1>Planificador de Coreografías</h1>
+                <div class="user-profile">
+                    <span>Wally Sebastian</span>
+                    <div class="avatar">W</div>
+                </div>
+            </header>
+
+            <section id="analyze-section" class="section">
+                <div class="glass-card analyzer-card">
+                    <h2>Analizar Nueva Canción</h2>
+                    <p>Pega el link de YouTube para extraer los momentos y la letra.</p>
+                    <div class="input-group">
+                        <input type="text" id="yt-url" placeholder="https://www.youtube.com/watch?v=...">
+                        <button id="btn-analyze" class="btn-primary">
+                            <i data-lucide="wand-2"></i> Analizar
+                        </button>
+                    </div>
+                    <div id="loading-state" class="hidden">
+                        <div class="spinner"></div>
+                        <p>Procesando con IA... Esto puede tardar un minuto.</p>
+                    </div>
+                    <div class="manual-import">
+                        <p class="help-text">¿Falla la IA? <a href="#" id="link-manual">Hazlo manual conmigo</a></p>
+                        <div id="manual-box" class="hidden">
+                            <textarea id="manual-json" placeholder="Pega aquí el código que te dio Wally..."></textarea>
+                            <button id="btn-import-manual" class="btn-secondary">Cargar Datos</button>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div id="result-container" class="hidden">
+                    <div class="glass-card result-card">
+                        <div class="result-header">
+                            <h3 id="song-title" contenteditable="true">Esa Te Dejó / Te Quise Olvidar (Eugenia Quevedo ft. Karina)</h3>
+                        </div>
+                        <div class="table-container">
+                            <table id="choreo-table">
+                               <thead>
+                                   <tr>
+                                       <th>Momento</th>
+                                       <th>Tiempo</th>
+                                       <th>Letra</th>
+                                       <th>Coreografía (Voz)</th>
+                                   </tr>
+                               </thead>
+                               <tbody id="choreo-body"></tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="result-footer">
+                            <button id="btn-save" class="btn-action btn-save">
+                                <i data-lucide="save"></i> Guardar Planilla
+                            </button>
+                            <button id="btn-export-word" class="btn-action btn-word">
+                                <i data-lucide="download"></i> Exportar Word
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="history-section" class="section hidden">
+                <div class="grid-history" id="history-grid"></div>
+            </section>
+
+            <section id="settings-section" class="section hidden">
+                <div class="glass-card settings-card">
+                    <div class="settings-header">
+                        <h2>Configuración AI</h2>
+                        <button class="btn-close" id="btn-close-settings">&times;</button>
+                    </div>
+                    <p>Introduce tu API Key de Google para activar el análisis autónomo.</p>
+                    <div class="settings-form">
+                        <div class="input-field">
+                            <label>Gemini API Key</label>
+                            <input type="password" id="api-key" placeholder="AIza...">
+                        </div>
+                        <button id="btn-save-settings" class="btn-primary">Guardar Configuración</button>
+                        <p class="help-text">¿No tienes una? <a href="https://aistudio.google.com/app/apikey" target="_blank">Consíguela gratis aquí</a></p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        console.log("Asistente Iniciando...");
+        
+        // Función de Navegación
+        function showSection(id) {
+            console.log("Mostrando sección:", id);
+            document.getElementById('analyze-section').classList.add('hidden');
+            document.getElementById('history-section').classList.add('hidden');
+            document.getElementById('settings-section').classList.add('hidden');
+            
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+            
+            const target = document.getElementById(id);
+            if (target) target.classList.remove('hidden');
+        }
+
+        // Asignación de Botones
+        window.onload = function() {
+            console.log("DOM Cargado");
+            
+            const btnNew = document.getElementById('btn-new');
+            const btnHistory = document.getElementById('btn-history');
+            const btnSettings = document.getElementById('btn-settings');
+            const btnCloseSettings = document.getElementById('btn-close-settings');
+            const btnSaveSettings = document.getElementById('btn-save-settings');
+
+            btnNew.onclick = () => { showSection('analyze-section'); btnNew.classList.add('active'); };
+            btnHistory.onclick = () => { showSection('history-section'); btnHistory.classList.add('active'); };
+            btnSettings.onclick = () => { showSection('settings-section'); btnSettings.classList.add('active'); };
+            btnCloseSettings.onclick = () => { showSection('analyze-section'); btnNew.classList.add('active'); };
+
+            btnSaveSettings.onclick = () => {
+                const key = document.getElementById('api-key').value.trim();
+                if (key) {
+                    localStorage.setItem('wally_api_key', key);
+                    alert('¡Configuración guardada!');
+                    showSection('analyze-section');
+                    btnNew.classList.add('active');
+                } else {
+                    alert('Ingresa una clave válida');
+                }
+            };
+
+            // Lógica de Análisis
+            document.getElementById('btn-analyze').onclick = async function() {
+                const url = document.getElementById('yt-url').value.trim();
+                const key = localStorage.getItem('wally_api_key');
+                
+                if (!url) return alert('Pega un link');
+                if (!key) return alert('Configura tu API Key primero');
+
+                document.getElementById('loading-state').classList.remove('hidden');
+                document.getElementById('result-container').classList.add('hidden');
+
+                try {
+                    const prompt = `Analiza este video de YouTube: ${url}. Dame un JSON con { "title": "Nombre", "moments": [{ "name": "Momento", "time": "0:00", "lyrics": "letra" }] }`;
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const result = await res.json();
+                    
+                    if (result.error) throw new Error(result.error.message);
+                    
+                    const text = result.candidates[0].content.parts[0].text;
+                    const data = JSON.parse(text.replace(/```json|```/g, '').trim());
+                    
+                    renderResult(data);
+                } catch (e) {
+                    alert("Falla técnica: " + e.message);
+                    document.getElementById('loading-state').classList.add('hidden');
+                }
+            };
+
+            function renderResult(data) {
+                saveToHistory(data); // Guardar estructura inicial
+                displaySong(data);
+                showSection('analyze-section');
+                document.getElementById('result-container').classList.remove('hidden');
+                document.getElementById('loading-state').classList.add('hidden');
+            }
+
+            function displaySong(data) {
+                document.getElementById('song-title').innerText = data.title;
+                const choreoBody = document.getElementById('choreo-body');
+                choreoBody.innerHTML = '';
+                data.moments.forEach((m, i) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="moment-cell" contenteditable="true">${m.name}</td>
+                        <td class="time-cell" contenteditable="true">${m.time}</td>
+                        <td class="lyrics-cell" contenteditable="true">${m.lyrics}</td>
+                        <td class="notes-cell">
+                            <div class="voice-input-wrapper">
+                                <textarea placeholder="Pasos..." data-index="${i}">${m.notes || ''}</textarea>
+                                <button class="btn-voice" title="Dictar por voz">
+                                    <i data-lucide="mic"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    const micBtn = tr.querySelector('.btn-voice');
+                    const textarea = tr.querySelector('textarea');
+                    micBtn.onclick = () => startVoiceDictation(textarea, micBtn);
+                    choreoBody.appendChild(tr);
+                });
+                lucide.createIcons();
+            }
+
+
+            function saveToHistory(data) {
+                let history = JSON.parse(localStorage.getItem('choreo_history') || '[]');
+                // Si ya existe por título, no lo duplicamos
+                if (!history.find(h => h.title === data.title)) {
+                    history.unshift(data);
+                    localStorage.setItem('choreo_history', JSON.stringify(history));
+                }
+            }
+
+            function loadHistoryList() {
+                const grid = document.getElementById('history-grid');
+                const history = JSON.parse(localStorage.getItem('choreo_history') || '[]');
+                
+                if (history.length === 0) {
+                    grid.innerHTML = '<p class="help-text" style="grid-column: 1/-1; text-align: center;">No hay canciones guardadas aún.</p>';
+                    return;
+                }
+
+                grid.innerHTML = history.map((h, index) => `
+                    <div class="glass-card history-card">
+                        <h3>${h.title}</h3>
+                        <div class="history-actions">
+                            <button onclick="loadFromHistory(${index})" class="btn-primary btn-sm">Abrir</button>
+                            <button onclick="deleteFromHistory(${index})" class="btn-danger btn-sm">Borrar</button>
+                        </div>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            }
+
+            window.loadFromHistory = function(index) {
+                const history = JSON.parse(localStorage.getItem('choreo_history') || '[]');
+                displaySong(history[index]);
+                showSection('analyze-section');
+                document.getElementById('result-container').classList.remove('hidden');
+            };
+
+            window.deleteFromHistory = function(index) {
+                if (confirm('¿Eliminar esta canción del historial?')) {
+                    let history = JSON.parse(localStorage.getItem('choreo_history') || '[]');
+                    history.splice(index, 1);
+                    localStorage.setItem('choreo_history', JSON.stringify(history));
+                    loadHistoryList();
+                }
+            };
+
+            // Estilos extra para historial
+            const style = document.createElement('style');
+            style.textContent = `
+                .grid-history { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem; }
+                .history-card { padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; }
+                .history-card h3 { font-size: 1rem; margin-bottom: 1rem; color: var(--text-primary); }
+                .history-actions { display: flex; gap: 0.5rem; }
+                .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+                .btn-danger { background: rgba(255, 71, 87, 0.2); border-color: #ff4757; color: #ff4757; }
+                .btn-danger:hover { background: #ff4757; color: white; }
+                
+                .result-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); }
+                .btn-action { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 1rem; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; border: 1px solid transparent; }
+                .btn-save { background: rgba(46, 213, 115, 0.2); color: #2ed573; border-color: #2ed573; }
+                .btn-save:hover { background: #2ed573; color: white; }
+                .btn-word { background: rgba(30, 144, 255, 0.2); color: #1e90ff; border-color: #1e90ff; }
+                .btn-word:hover { background: #1e90ff; color: white; }
+                
+                @media (max-width: 600px) {
+                    .result-footer { grid-template-columns: 1fr; }
+                }
+            `;
+            document.head.appendChild(style);
+
+            function saveCurrentState() {
+                const title = document.getElementById('song-title').innerText;
+                const rows = Array.from(document.querySelectorAll('#choreo-body tr'));
+                
+                const data = {
+                    title: title,
+                    moments: rows.map(tr => ({
+                        name: tr.cells[0].innerText,
+                        time: tr.cells[1].innerText,
+                        lyrics: tr.cells[2].innerText,
+                        notes: tr.querySelector('textarea').value
+                    }))
+                };
+
+                let history = JSON.parse(localStorage.getItem('choreo_history') || '[]');
+                const index = history.findIndex(h => h.title === title);
+                
+                if (index !== -1) {
+                    history[index] = data; 
+                } else {
+                    history.unshift(data);
+                }
+                
+                localStorage.setItem('choreo_history', JSON.stringify(history));
+                alert("¡Progreso guardado localmente!");
+                loadHistoryList();
+            }
+
+            document.getElementById('btn-save').onclick = saveCurrentState;
+
+            // Word Export
+            document.getElementById('btn-export-word').onclick = async function() {
+                try {
+                    const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } = window.docx;
+                    const rows = Array.from(document.querySelectorAll('#choreo-body tr')).map(tr => ({
+                        name: tr.cells[0].innerText,
+                        time: tr.cells[1].innerText,
+                        lyrics: tr.cells[2].innerText,
+                        notes: tr.querySelector('textarea').value
+                    }));
+
+                    const doc = new Document({
+                        sections: [{
+                            children: [
+                                new Paragraph({ text: document.getElementById('song-title').innerText, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
+                                new Table({
+                                    width: { size: 100, type: WidthType.PERCENTAGE },
+                                    rows: [
+                                        new TableRow({ children: [
+                                            new TableCell({ children: [new Paragraph("Momento")] }),
+                                            new TableCell({ children: [new Paragraph("Tiempo")] }),
+                                            new TableCell({ children: [new Paragraph("Letra")] }),
+                                            new TableCell({ children: [new Paragraph("Coreo")] })
+                                        ]}),
+                                        ...rows.map(r => new TableRow({ children: [
+                                            new TableCell({ children: [new Paragraph(r.name)] }),
+                                            new TableCell({ children: [new Paragraph(r.time)] }),
+                                            new TableCell({ children: [new Paragraph(r.lyrics)] }),
+                                            new TableCell({ children: [new Paragraph(r.notes)] })
+                                        ]}))
+                                    ]
+                                })
+                            ]
+                        }]
+                    });
+                    const blob = await Packer.toBlob(doc);
+                    saveAs(blob, `${document.getElementById('song-title').innerText}.docx`);
+                } catch (e) { alert("Error al exportar: " + e.message); }
+            };
+
+            // Importación Manual
+            document.getElementById('link-manual').onclick = (e) => {
+                e.preventDefault();
+                document.getElementById('manual-box').classList.toggle('hidden');
+            };
+
+            document.getElementById('btn-import-manual').onclick = () => {
+                try {
+                    const jsonText = document.getElementById('manual-json').value.trim();
+                    const data = JSON.parse(jsonText);
+                    
+                    // Renderizar
+                    document.getElementById('song-title').innerText = data.title;
+                    const body = document.getElementById('choreo-body');
+                    body.innerHTML = '';
+                    data.moments.forEach(m => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="moment-cell" contenteditable="true">${m.name}</td>
+                            <td class="time-cell" contenteditable="true">${m.time}</td>
+                            <td class="lyrics-cell" contenteditable="true">${m.lyrics}</td>
+                            <td class="notes-cell">
+                                <div class="voice-input-wrapper">
+                                    <textarea placeholder="Pasos..."></textarea>
+                                    <button class="btn-voice" title="Dictar por voz">
+                                        <i data-lucide="mic"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                        const micBtn = tr.querySelector('.btn-voice');
+                        const textarea = tr.querySelector('textarea');
+                        micBtn.onclick = () => startVoiceDictation(textarea, micBtn);
+                        body.appendChild(tr);
+                    });
+                    lucide.createIcons();
+                    document.getElementById('result-container').classList.remove('hidden');
+                    document.getElementById('manual-box').classList.add('hidden');
+                    document.getElementById('manual-json').value = '';
+                } catch (e) {
+                    alert("El código no es válido. Asegúrate de copiar todo el texto que te pasé.");
+                }
+            };
+
+            lucide.createIcons();
+            console.log("¡Todo listo!");
+        };
+    </script>
+    <style>
+        .manual-import { margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1rem; }
+        #manual-json { width: 100%; height: 80px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); color: white; border-radius: 8px; padding: 0.5rem; margin-bottom: 0.5rem; font-family: monospace; font-size: 0.75rem; }
+        .btn-secondary { background: var(--glass-bg); border: 1px solid var(--glass-border); color: white; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; }
+    </style>
+</body>
+</html>

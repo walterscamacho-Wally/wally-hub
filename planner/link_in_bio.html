@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baila con Wally | Enlaces Oficiales</title>
+    <!-- Google Fonts: Montserrat -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --naranja-wally: #FF7020;
+            --amarillo-energia: #FFD700;
+            --negro-profundo: #000000;
+            --blanco: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        body {
+            background-color: var(--negro-profundo);
+            color: var(--blanco);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            min-height: 100vh;
+            text-align: center;
+            background-image: radial-gradient(circle at 10% 20%, rgba(255, 112, 32, 0.1) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 40%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .profile-container {
+            margin-bottom: 30px;
+        }
+
+        .logo-img {
+            width: 140px;
+            height: auto;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 10px rgba(255, 112, 32, 0.3));
+        }
+
+        h1 {
+            font-weight: 900;
+            font-size: 24px;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .slogan {
+            font-size: 14px;
+            color: var(--amarillo-energia);
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+
+        .links-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .link-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 18px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--blanco);
+            font-weight: 700;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .link-card:hover {
+            background: var(--naranja-wally);
+            transform: translateY(-3px);
+            border-color: var(--amarillo-energia);
+            box-shadow: 0 10px 20px rgba(255, 112, 32, 0.3);
+        }
+
+        /* Destacar el botón de WhatsApp */
+        .link-card.primary {
+            background: var(--naranja-wally);
+            border-color: var(--amarillo-energia);
+            font-size: 18px;
+            padding: 22px;
+            box-shadow: 0 0 15px rgba(255, 112, 32, 0.4);
+        }
+
+        .link-card.primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(255, 112, 32, 0.6);
+        }
+
+        /* Estilos para el Cronograma Integrado */
+        .schedule-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--naranja-wally);
+            padding: 20px;
+            border-radius: 12px;
+            color: var(--blanco);
+            text-align: left;
+            margin-bottom: 16px;
+            box-shadow: inset 0 0 10px rgba(255, 112, 32, 0.1);
+        }
+
+        .schedule-title {
+            font-weight: 900;
+            font-size: 14px;
+            color: var(--amarillo-energia);
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .schedule-location {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .schedule-location:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .schedule-location strong {
+            display: block;
+            font-size: 15px;
+            color: var(--naranja-wally);
+            margin-bottom: 4px;
+        }
+
+        .schedule-location span {
+            display: block;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 700;
+        }
+
+        .social-icons {
+            margin-top: 40px;
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+        }
+
+        .social-icon {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: color 0.3s;
+            font-weight: 700;
+        }
+
+        .social-icon:hover {
+            color: var(--amarillo-energia);
+        }
+
+        footer {
+            margin-top: auto;
+            padding-top: 40px;
+            font-size: 10px;
+            opacity: 0.4;
+            letter-spacing: 1px;
+        }
+
+        /* Animación de pulso para el botón principal */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .primary {
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="profile-container">
+            <!-- Logo oficial -->
+            <img src="file:///C:/Users/walte/OneDrive/Escritorio/Baila con Wally/Logo Transparente.png" alt="Logo Baila con Wally" class="logo-img">
+            <h1>Baila con Wally</h1>
+            <p class="slogan">¡Donde la energía se vive con alegría!</p>
+        </div>
+
+        <div class="links-container">
+            <!-- Botón Principal: WhatsApp (Actualizado con "Team") -->
+            <a href="https://wa.me/5491169957971?text=Hola%20Wally!%20Quiero%20sumarme%20al%20team%20y%20bailar%20con%20vos.%20¿Me%20das%20info%20de%20las%20clases?" class="link-card primary">
+                🚀 SUMARME AL TEAM
+            </a>
+
+            <!-- Cronograma Integrado -->
+            <div class="schedule-card">
+                <div class="schedule-title">🗓️ Días y Horarios</div>
+                <div class="schedule-location">
+                    <strong>📍 Barrio Los Lagos</strong>
+                    <span>Lunes, Miércoles y Viernes • 09:00 AM</span>
+                </div>
+                <div class="schedule-location">
+                    <strong>📍 Barrio Las Glorietas</strong>
+                    <span>Lunes y Miércoles • 19:00 HS</span>
+                </div>
+            </div>
+
+            <!-- Grupos Privados -->
+            <a href="https://wa.me/5491169957971?text=Hola%20Wally!%20Me%20gustaría%20armar%20un%20grupo%20privado%20¿Me%20pasas%20info?" class="link-card">
+                👥 Armar un Grupo Privado
+            </a>
+
+            <!-- Clases Personalizadas -->
+            <a href="https://wa.me/5491169957971?text=Hola%20Wally!%20Me%20gustaría%20tomar%20clases%20personalizadas.%20¿Me%20pasas%20info?" class="link-card">
+                ⭐ Clases Personalizadas
+            </a>
+
+            <!-- Animación de Eventos -->
+            <a href="https://wa.me/5491169957971?text=Hola%20Wally!%20Quisiera%20solicitar%20info%20para%20una%20Animación%20de%20Evento." class="link-card">
+                🎉 Animación de Eventos
+            </a>
+        </div>
+
+        <div class="social-icons">
+            <a href="https://www.instagram.com/bailaconwally/" class="social-icon" target="_blank">Instagram</a>
+            <a href="https://www.tiktok.com/@bailaconwally" class="social-icon" target="_blank">TikTok</a>
+        </div>
+
+        <footer>
+            POWERED BY ANTIGRAVITY & BAILA CON WALLY
+        </footer>
+    </div>
+
+</body>
+</html>

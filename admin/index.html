@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0A0A0A">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdib3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7DkDwvdGV4dD48L3N2Zz4=">
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+    <title>Wally Admin Pro</title>
+</head>
+<body class="hidden"> <!-- Hide until auth check is done -->
+    <div id="app">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <span style="font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 2px; color: var(--accent-blue);">WALLY</span>
+                <h1 style="font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 2px;">ADMIN <span style="color: var(--accent-blue);">PRO</span></h1>
+                <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;">
+                    <button id="privacy-toggle" class="icon-btn" title="Modo Privacidad" style="background: rgba(255,107,0,0.1); width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,107,0,0.2);">👁️</button>
+                    <button id="logout-btn" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:0.7rem; opacity:0.6; font-weight: 700;">(SALIR)</button>
+                </div>
+            </div>
+            <div class="date-header" id="current-date-header" style="font-weight: 700; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px;"></div>
+        </header>
+
+        <!-- Alert System -->
+        <div id="alert-banner" class="alert hidden">
+            <span class="alert-icon">⚠️</span>
+            <p>Saldo ICBC y BBVA bajo. Considera rebalanceo de Reservas MP.</p>
+            <button id="close-alert" class="icon-btn">✖</button>
+        </div>
+
+        <!-- Dynamic Main Content Area -->
+        <main id="content" class="scroll-container">
+            <!-- TAB TOTAL -->
+            <section id="view-total" class="view-section active">
+                <div class="glass-card net-worth-card">
+                    <h2>Patrimonio Neto</h2>
+                    <h1 id="net-worth-ars" class="mask-target">$ 0.00</h1>
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 8px;">
+                        <p class="subtitle mask-target" id="net-worth-usd" style="margin: 0; margin-right: 5px;">u$s 0.00</p>
+                        <div style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 3px 8px; display: flex; align-items: center; gap: 8px;">
+                            <span id="current-usd-rate" style="font-size: 0.75rem; color: var(--text-secondary);">1 USD = $1000</span>
+                            <button id="edit-usd-btn" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; padding:0; font-size: 0.8rem; opacity:0.8;" title="Editar manualmente">✎</button>
+                            <button id="sync-usd-btn" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; padding:0; font-size: 0.8rem; opacity:0.8;" title="Actualizar con DolarHoy">🔄</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="header-action">
+                    <h3 class="section-title" style="margin:0;">Tus Cuentas</h3>
+                    <button id="new-account-btn" class="glass-input" style="width: auto; padding: 6px 12px; font-size: 0.85rem;">+ Nueva</button>
+                </div>
+                <div class="accounts-grid" id="accounts-grid">
+                    <!-- Inyectado por JS -->
+                </div>
+                
+                <h3 class="section-title mt-20">Privacidad</h3>
+                <div class="glass-card account-card vault-card" id="vault-access-btn" style="cursor: pointer; border-color: rgba(139, 92, 246, 0.5);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="acc-name" style="color: #c4b5fd;">🔒 La Bóveda</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB INGRESOS -->
+            <section id="view-ingresos" class="view-section hidden">
+                <div class="header-action">
+                    <h2>Ingresos</h2>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="ingresos-acc-filter" class="month-selector" style="font-size: 0.75rem;">
+                            <option value="all">Cuentas: Todas</option>
+                        </select>
+                        <select id="ingresos-month-filter" class="month-selector" style="font-size: 0.75rem;">
+                        <option value="all">Ver Todos</option>
+                    </select>
+                </div>
+                <div class="transaction-list" id="ingresos-list">
+                    <!-- Inyectado por JS -->
+                    <p class="empty-state">No hay ingresos registrados en este periodo.</p>
+                </div>
+            </section>
+
+            <!-- TAB EGRESOS -->
+            <section id="view-egresos" class="view-section hidden">
+                <div class="header-action">
+                    <h2>Egresos</h2>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="egresos-acc-filter" class="month-selector" style="font-size: 0.75rem;">
+                            <option value="all">Cuentas: Todas</option>
+                        </select>
+                        <select id="egresos-month-filter" class="month-selector" style="font-size: 0.75rem;">
+                        <option value="all">Ver Todos</option>
+                    </select>
+                </div>
+                <div class="transaction-list" id="egresos-list">
+                    <!-- Inyectado por JS -->
+                    <p class="empty-state">No hay egresos registrados en este periodo.</p>
+                </div>
+            </section>
+
+            <!-- TAB ESTADISTICAS -->
+            <section id="view-estadisticas" class="view-section hidden">
+                <div class="header-action" style="margin-bottom: 20px;">
+                    <h2>Estadísticas</h2>
+                    <button id="export-pdf-btn" class="btn-primary" style="width: auto; padding: 6px 15px; background: var(--accent-blue); font-size: 0.85rem; border-radius: 8px;">📊 Informe PDF</button>
+                </div>
+                
+                <h3 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px;">Rendimiento Mensual</h3>
+                <div class="glass-card chart-container">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+                
+                <h3 class="section-title mt-20">Comparativa Global</h3>
+                <div class="stats-grid" id="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-label">Mejor Mes</span>
+                        <h4 id="stat-best-month">-</h4>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Promedio Ahorro</span>
+                        <h4 id="stat-avg-savings">-</h4>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Navigation Mobile First -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-target="view-total">
+                <span class="nav-icon">💰</span>
+                <span class="nav-label">Total</span>
+            </button>
+            <button class="nav-btn" data-target="view-ingresos">
+                <span class="nav-icon">📈</span>
+                <span class="nav-label">Ingresos</span>
+            </button>
+            <div class="nav-center-action">
+                <button class="add-btn" id="open-modal-btn">
+                    <span class="plus-icon">+</span>
+                </button>
+            </div>
+            <button class="nav-btn" data-target="view-egresos">
+                <span class="nav-icon">📉</span>
+                <span class="nav-label">Egresos</span>
+            </button>
+            <button class="nav-btn" data-target="view-estadisticas">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Stats</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Modal Nuevo Registro -->
+    <div id="input-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h2 id="input-modal-title">Nuevo Registro</h2>
+                <button id="close-modal-btn" class="icon-btn">✖</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-mode-switcher">
+                    <button id="mode-text-btn" class="mode-btn active">Teclado</button>
+                    <button id="mode-voice-btn" class="mode-btn">Dictado por Voz</button>
+                </div>
+
+                <!-- Dictation mode -->
+                <div id="voice-mode" class="hidden text-center v-stack">
+                    <p class="voice-instruction">Toca el micrófono y di:<br/><em>"Cobré 5000 por clase en Efectivo"</em> o<br/><em>"Gasté 2000 en nafta desde Mercado Pago"</em></p>
+                    <button id="mic-record-btn" class="mic-button">🎙️</button>
+                    <p id="voice-feedback" class="voice-feedback">Esperando...</p>
+                </div>
+
+                <!-- Text mode -->
+                <div id="text-mode" class="v-stack form-stack">
+                    <div class="form-group row-group">
+                        <select id="reg-type" class="glass-input flex-1 type-selector">
+                            <option value="egreso">🔴 Egreso (Gasto)</option>
+                            <option value="ingreso">🟢 Ingreso (Cobro)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group row-group amount-group">
+                        <span class="currency-symbol">$</span>
+                        <input type="number" id="reg-amount" class="glass-input amount-input" placeholder="0.00" inputmode="numeric">
+                    </div>
+
+                    <div class="form-group">
+                        <input type="text" id="reg-desc" class="glass-input desc-input" placeholder="Descripción (Ej: Nafta, Clase Zumba)">
+                    </div>
+
+                    <div class="form-group">
+                        <input type="date" id="reg-date" class="glass-input date-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Cuenta de impacto:</label>
+                        <select id="reg-account" class="glass-input">
+                            <!-- Inyectado por JS -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 10px;">
+                <button id="delete-tx-btn" class="btn-primary hidden" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; flex: 1;">Eliminar</button>
+                <button id="save-reg-btn" class="btn-primary" style="flex: 2;">Guardar Registro</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edit/Manage Account -->
+    <div id="edit-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h2>Gestionar Cuenta</h2>
+                <button id="close-edit-btn" class="icon-btn">✖</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nombre de la Cuenta</label>
+                    <input type="text" id="edit-account-name" data-original-account="" class="glass-input" style="margin-bottom: 20px; font-size: 1.1rem; color: var(--text-primary);">
+                </div>
+                <div class="form-group row-group amount-group">
+                    <span class="currency-symbol">$</span>
+                    <input type="number" id="edit-amount" class="glass-input amount-input" placeholder="0.00" inputmode="numeric">
+                </div>
+                
+                <h3 style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 25px; margin-bottom: 10px;">Movimientos de esta cuenta</h3>
+                <div id="account-tx-history" class="transaction-list small" style="max-height: 200px; overflow-y: auto;">
+                    <!-- Inyectado por JS -->
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 10px;">
+                <button id="delete-account-btn" class="btn-primary" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; flex: 1;">Eliminar</button>
+                <button id="save-edit-btn" class="btn-primary" style="flex: 2;">Actualizar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal PIN (Vault Access) -->
+    <div id="pin-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content glass-card" style="text-align: center;">
+            <div class="modal-header">
+                <h2 id="pin-modal-title">🔐 Bóveda</h2>
+                <button id="close-pin-btn" class="icon-btn">✖</button>
+            </div>
+            <div class="modal-body">
+                <p id="pin-instruction" style="margin-bottom: 15px; color: var(--text-secondary);">Ingresa tu PIN secreto</p>
+                <input type="password" id="vault-pin-input" class="glass-input" placeholder="****" inputmode="numeric" maxlength="4" style="text-align: center; font-size: 2rem; letter-spacing: 10px;">
+                <p id="pin-error" class="hidden" style="color: var(--accent-red); margin-top: 10px; font-size: 0.9rem;">PIN Incorrecto</p>
+            </div>
+            <div class="modal-footer">
+                <button id="verify-pin-btn" class="btn-primary w-full">Ingresar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loader"></div>
+        <p style="color: var(--text-secondary); font-size: 0.9rem;">Sincronizando tus cuentas...</p>
+    </div>
+
+    <!-- Modal Vault Management -->
+    <div id="vault-modal" class="modal hidden">
+        <div class="modal-backdrop" id="vault-backdrop"></div>
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h2>La Bóveda</h2>
+                <button id="close-vault-btn" class="icon-btn">✖</button>
+            </div>
+            <div class="modal-body text-center">
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">Ahorro No Declarado</p>
+                
+                <div style="display: flex; justify-content: space-around; margin-bottom: 30px;">
+                    <div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);">Pesos</p>
+                        <h2 id="vault-ars-display" class="mask-target" style="color: #c4b5fd;">$ 0</h2>
+                    </div>
+                    <div style="width: 1px; background: rgba(255,255,255,0.1);"></div>
+                    <div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);">Dólares</p>
+                        <h2 id="vault-usd-display" class="mask-target" style="color: #a7f3d0;">u$s 0</h2>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 8px;">Moneda a mover</label>
+                    <select id="vault-currency" class="glass-input" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; width: 100%; padding: 10px; border-radius: 8px;">
+                        <option value="ARS">Pesos ($)</option>
+                        <option value="USD">Dólares (u$s)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <input type="number" id="vault-amount-input" class="glass-input" placeholder="Monto a sumar/restar" inputmode="decimal" style="text-align: center; font-size: 1.2rem; width: 100%;">
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 10px;">
+                <button id="vault-withdraw-btn" class="btn-primary" style="flex: 1; background: rgba(239, 68, 68, 0.4);">- Retirar</button>
+                <button id="vault-deposit-btn" class="btn-primary" style="flex: 1; background: rgba(16, 185, 129, 0.4);">+ Ingresar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu for Long Press Editing -->
+    <div id="context-menu" class="hidden">
+        <button id="delete-record-btn">🗑️ Eliminar</button>
+    </div>
+
+    <script>
+        // Registra el Service Worker de la PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(registration => {
+                    console.log('SW registrado con éxito:', registration.scope);
+                }).catch(error => {
+                    console.log('Fallo en el registro del SW:', error);
+                });
+            });
+        }
+    </script>
+    <script src="app.js"></script>
+    <div class="version-tag">v1.7 - Edit Pro</div>
+</body>
+</html>

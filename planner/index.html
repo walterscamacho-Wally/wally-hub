@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#3b82f6">
+    <title>Planner Pro | Social Media</title>
+    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- BARRA SUPERIOR (CLIENTES Y ACCIONES) -->
+<header class="top-bar">
+    <div class="logo-area">
+        <h1>Planner<span>Pro</span></h1>
+    </div>
+
+    <div class="client-control">
+        <div class="client-badge" id="clientAvatar">W</div>
+        <select id="clientSelector" class="excel-select"></select>
+        <button class="icon-btn" id="btnEditClient">⚙️</button>
+        <button class="btn-sm" id="btnNewClient">+ Nuevo Cliente</button>
+    </div>
+
+    <div class="top-actions">
+        <button class="btn primary" id="btnNuevoPost">➕ NUEVO POST</button>
+        <button class="btn secondary" id="btnExport">⬇️ Backup</button>
+    </div>
+</header>
+
+<main class="excel-container">
+    
+    <!-- VISTA: CALENDARIO MENSUAL (IMAGEN 1) -->
+    <section id="vista-mensual" class="view-section active">
+        <div class="sheet-header">
+            <h2 id="month-title">ENERO 2026</h2>
+            <div class="sheet-controls">
+                <button id="prevMonth">◀</button>
+                <button id="nextMonth">▶</button>
+            </div>
+        </div>
+        <div class="excel-grid-wrapper">
+            <div class="excel-calendar-grid">
+                <div class="weekday-header">DOMINGO</div>
+                <div class="weekday-header">LUNES</div>
+                <div class="weekday-header">MARTES</div>
+                <div class="weekday-header">MIÉRCOLES</div>
+                <div class="weekday-header">JUEVES</div>
+                <div class="weekday-header">VIERNES</div>
+                <div class="weekday-header">SÁBADO</div>
+                <div id="monthlyCells" class="cells-container"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- VISTA: CALENDARIO EDITORIAL (IMAGEN 2, 3, 4) -->
+    <section id="vista-editorial" class="view-section">
+        <div class="editorial-layout">
+            <aside class="editorial-sidebar">
+                <div class="mini-card">
+                    <h3>DISTRIBUCIÓN</h3>
+                    <canvas id="distChart"></canvas>
+                </div>
+                <div class="mini-card" id="notebookLinks">
+                    <!-- Cuadernos NotebookLM -->
+                </div>
+            </aside>
+
+            <div class="editorial-main">
+                <div id="weeklyContent" class="weekly-list">
+                    <!-- Generado por JS: Semanas y Post Cards -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- VISTA: MÉTRICAS -->
+    <section id="vista-metricas" class="view-section">
+        <div class="metrics-container">
+            <div class="chart-box"><canvas id="growthChart"></canvas></div>
+            <div class="table-box">
+                <table class="excel-table" id="metricsTable">
+                    <thead><tr><th>Mes</th><th>Seguidores</th><th>Alcance</th><th>Acciones</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+                <button class="btn secondary" id="btnNuevaMetrica">+ Agregar Registro</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- VISTA: PLANILLA PRODUCCIÓN -->
+    <section id="vista-produccion" class="view-section">
+        <div class="sheet-header no-print">
+            <h2>PLANILLA DE PRODUCCIÓN</h2>
+            <div class="sheet-controls">
+                <button id="btnClearSheet" class="btn-sm" style="color:var(--status-red-text); border-color:var(--status-red-text);">🗑️ Limpiar Planilla</button>
+                <button id="btnUndo" class="btn secondary" style="display:none;" title="Deshacer última acción de IA">↩️ Deshacer</button>
+                <button id="btnExportCSV" class="btn secondary">⬇️ Exportar CSV</button>
+                <button id="btnNextWeek" class="btn secondary">💡 Sugerir Semana</button>
+                <button id="btnPasteAI" class="btn primary">📋 Pegar de IA</button>
+                <button id="btnPrint" class="btn primary">🖨️</button>
+            </div>
+        </div>
+        <div class="table-box print-container">
+            <table class="excel-table editable-table" id="productionTable">
+                <thead>
+                    <tr>
+                        <th width="8%">Semana/Día</th>
+                        <th width="10%">Formato</th>
+                        <th width="12%">Tipo / Título</th>
+                        <th width="15%">Gancho (Hook)</th>
+                        <th width="15%">Material / Escenas</th>
+                        <th width="12%">Texto en Pantalla</th>
+                        <th width="15%">Copy (Caption)</th>
+                        <th width="13%">Música / Audio</th>
+                    </tr>
+                </thead>
+                <tbody id="productionBody" contenteditable="true">
+                    <!-- Filas inyectadas por JS -->
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+
+<!-- TABS INFERIORES (ESTILO EXCEL) -->
+<nav class="excel-tabs">
+    <div class="tab active" data-target="vista-mensual">CALENDARIO MENSUAL</div>
+    <div class="tab" data-target="vista-editorial">CALENDARIO EDITORIAL</div>
+    <div class="tab" data-target="vista-metricas">MÉTRICAS</div>
+    <div class="tab" data-target="vista-produccion">PLANILLA PRODUCCIÓN</div>
+</nav>
+
+<!-- MODALES (CONSOLIDADO) -->
+<div id="modalTarea" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" data-modal="modalTarea">&times;</span>
+        <h2 id="modalTaskTitle">Detalle del Contenido</h2>
+        <form id="formTarea">
+            <input type="hidden" id="taskId">
+            <div class="form-row">
+                <div class="form-group flex-3">
+                    <label>Título / Gancho</label>
+                    <input type="text" id="taskTitle" required>
+                </div>
+                <div class="form-group flex-1">
+                    <label>Fecha</label>
+                    <input type="date" id="taskDate">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Plataforma</label>
+                    <select id="taskPlatform"></select>
+                </div>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="taskType"></select>
+                </div>
+                <div class="form-group">
+                    <label>Estado</label>
+                    <select id="taskStatus">
+                        <option value="Idea">Sin comenzar</option>
+                        <option value="Progreso">En proceso</option>
+                        <option value="Hecho">Publicado</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Copy / Descripción</label>
+                <textarea id="taskCopy" rows="4"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>CTA</label>
+                    <input type="text" id="taskCta">
+                </div>
+                <div class="form-group">
+                    <label>Hashtags</label>
+                    <input type="text" id="taskHashtags">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Link / Imagen URL</label>
+                <input type="text" id="taskImage">
+            </div>
+            <button type="submit" class="btn primary full-width">GUARDAR CAMBIOS</button>
+        </form>
+    </div>
+</div>
+
+<div id="modalCliente" class="modal">
+    <!-- Configuración de Cliente -->
+    <div class="modal-content">
+        <span class="close-modal" data-modal="modalCliente">&times;</span>
+        <h2>Configurar Cliente</h2>
+        <form id="formCliente">
+            <input type="hidden" id="clientId">
+            <div class="form-group">
+                <label>Nombre de la Cuenta</label>
+                <input type="text" id="clientName" required>
+            </div>
+            <div class="form-group">
+                <label>Color</label>
+                <input type="color" id="clientColor">
+            </div>
+            <div class="form-group">
+                <label>Plataformas (separadas por coma)</label>
+                <input type="text" id="clientPlatforms">
+            </div>
+            <div class="form-group">
+                <label>Directrices de Marca (Reglas y Preferencias)</label>
+                <textarea id="clientGuidelines" rows="4" placeholder="Ej: No salir bailando a cámara, tono divertido, preferir videos de las alumnas..."></textarea>
+            </div>
+            <button type="submit" class="btn primary full-width">GUARDAR CLIENTE</button>
+        </form>
+    </div>
+</div>
+
+<div id="modalPaste" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" data-modal="modalPaste">&times;</span>
+        <h2>Pegar Respuesta de IA</h2>
+        <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 10px;">Pega aquí el texto o la tabla que te generó Antigravity. El sistema lo acomodará automáticamente en tu planilla.</p>
+        <div id="aiPasteContent" contenteditable="true" style="width: 100%; min-height: 150px; max-height: 300px; overflow-y: auto; padding: 10px; border: 1px solid var(--excel-border); border-radius: 6px; font-family: sans-serif; font-size: 0.9rem; background: #f8fafc;" placeholder="Pega la tabla aquí..."></div>
+        <button id="btnProcessPaste" class="btn primary full-width" style="margin-top: 15px;">PROCESAR Y AÑADIR A LA PLANILLA</button>
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js');
+    }
+</script>
+</body>
+</html>

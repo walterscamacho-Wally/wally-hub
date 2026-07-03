@@ -1,0 +1,56 @@
+window.lastResult = {
+  "title": "La K'onga & Maxi Espindola - Amiga Mía",
+  "url": "https://www.youtube.com/watch?v=IH1Ni5g4Jhg",
+  "moments": [
+    {
+      "name": "Intro",
+      "time": "0:00",
+      "lyrics": "amiga mía vamos Maxi"
+    },
+    {
+      "name": "Verso 1",
+      "time": "0:10",
+      "lyrics": "amiga mía lo sé si no vives por él que lo sabe también pero él no debe como yo suplicarle a mi boca que diga que me ha confesado entre copas que es con tu piel con quien sueña de noche y que enloquece con cada botón que te desabrochas pensando en sus manos"
+    },
+    {
+      "name": "Pre-Estribillo",
+      "time": "0:40",
+      "lyrics": "él no te ha visto temblar esperando una palabra algún gesto un abrazo él no te ve como yo sosperando con los ojitos abiertos se pare para escucharme nombrarle ay amiga mía lo sé y él también"
+    },
+    {
+      "name": "Interludio",
+      "time": "1:05",
+      "lyrics": "vamos la suena el cuarteto de Córdoba bueno"
+    },
+    {
+      "name": "Verso 2",
+      "time": "1:15",
+      "lyrics": "y amiga mía no sé qué decir ni qué hacer para verte feliz y ojalá pudiera mandar en el alma o la libertad que esto que le hace falta llenarte los bolsillos de guerras ganadas de sueños de ilusiones renovadas yo quiero regalarte una poesía tú piensas que estoy dando las noticias"
+    },
+    {
+      "name": "Estribillo 1",
+      "time": "1:40",
+      "lyrics": "amiga mía ojalá algún día escuchando mi canción de pronto entiendas que lo que nunca dice fue contar tu historia aunque pudiera resultar como movedora pero perdona amiga mía no es inteligencia ni sabiduría esta es mi manera de decir las cosas no es que sea mi trabajo si es mi idioma"
+    },
+    {
+      "name": "Post-Estribillo",
+      "time": "2:10",
+      "lyrics": "amiga mía princesa de un cuento infinito amiga mía tan solo pretendo que cuentes conmigo amiga mía a ver si uno de estos días por fin aprendo a hablar sin tener que dar tantos rodeos que toda esta historia no importa porque eres mi amiga"
+    },
+    {
+      "name": "Puente / Animación",
+      "time": "2:40",
+      "lyrics": "la coca mueva mueva mueva dice \"A ver ah\""
+    },
+    {
+      "name": "Verso 3",
+      "time": "2:55",
+      "lyrics": "amiga mía no sé qué decir ni qué hacer para verte feliz ojalá pudiera mandar en el alma o en la liberté que es lo que le hace falta darte los bolsillos de guerras ganadas de sueños de ilusiones renovadas yo quiero regalarte una poesía tú piensas que estoy dando las noticias"
+    },
+    {
+      "name": "Estribillo Final / Outro",
+      "time": "3:20",
+      "lyrics": "amiga mía princesa de un cuento infinito amiga mía tan solo pretendo que cuentes conmigo amiga mía a ver si uno de estos días por fin aprendo por fin aprendendo hablar sin tener que dar tantos rodeos es toda esta historia no importa porque eres mi amiga oh"
+    }
+  ]
+};

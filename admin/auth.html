@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <title>Wally Admin Pro - Ingresar</title>
+    <style>
+        body, html { height: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .login-container { width: 90%; max-width: 400px; text-align: center; padding: 40px; }
+        .google-btn {
+            background: white;
+            color: #333;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 30px auto;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        .google-btn:active { transform: scale(0.98); }
+        .google-icon { width: 20px; height: 20px; }
+    </style>
+</head>
+<body>
+    <div class="login-container glass-card">
+        <div style="font-size: 3rem; margin-bottom: 20px;">📊</div>
+        <h1 style="margin-bottom: 10px;">Wally Admin Pro</h1>
+        <p style="color: var(--text-secondary); line-height: 1.5;">Tu centro de mando financiero sincronizado en todos tus dispositivos.</p>
+        
+        <button id="google-login-btn" class="google-btn">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="google-icon" alt="Google">
+            Continuar con Google
+        </button>
+
+        <p style="margin-top: 30px; font-size: 0.7rem; color: var(--accent-blue); opacity: 0.5;">v1.7 - Edit Pro</p>
+
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 40px; opacity: 0.7;">
+            Implementado por Wally Dev & AI
+        </p>
+    </div>
+
+    <!-- Scripts de Firebase Compat -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyDGx0PmwYPZgwLFSAbm26VF_FTxry-ORMc",
+          authDomain: "wallyadmin-9107f.firebaseapp.com",
+          projectId: "wallyadmin-9107f",
+          storageBucket: "wallyadmin-9107f.firebasestorage.app",
+          messagingSenderId: "883208525115",
+          appId: "1:883208525115:web:2aabd97f6824de211c931e",
+          measurementId: "G-WH1Y0S4VVC"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        document.getElementById('google-login-btn').addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).then((result) => {
+                // El login fue exitoso, redirigimos a la app principal
+                window.location.href = 'index.html';
+            }).catch((error) => {
+                alert("Error al ingresar: " + error.message);
+            });
+        });
+
+        // Si ya está logueado, mandarlo directo al dashboard
+        auth.onAuthStateChanged(user => {
+            if (user) window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>

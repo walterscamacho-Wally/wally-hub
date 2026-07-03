@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baila Con Wally - Reporte Final UTN</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #FF6B00;
+            --primary-glow: rgba(255, 107, 0, 0.4);
+            --bg: #000000;
+            --surface: #111111;
+            --text: #FFFFFF;
+            --text-dim: #BBBBBB;
+            --accent: #FFD700;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, .brand {
+            font-family: 'Outfit', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* --- UI Elements --- */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* --- Portada --- */
+        .cover {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), var(--bg)), url('../assets/report_cover.png');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            padding: 40px;
+        }
+
+        .cover::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, transparent 0%, var(--bg) 95%);
+        }
+
+        .cover-content {
+            position: relative;
+            z-index: 10;
+        }
+
+        .utn-logo {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dim);
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .brand-logo {
+            font-size: clamp(32px, 8vw, 48px);
+            font-weight: 800;
+            color: var(--primary);
+            text-shadow: 0 0 20px var(--primary-glow);
+            margin-bottom: 10px;
+        }
+
+        .main-title {
+            font-size: clamp(24px, 5vw, 36px);
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: var(--text-dim);
+            max-width: 600px;
+            margin-bottom: 60px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .student-info {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 30px;
+            text-align: left;
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+        }
+
+        .info-item {
+            margin-bottom: 15px;
+        }
+
+        .info-label {
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 15px;
+            color: #fff;
+        }
+
+        /* --- Content Sections --- */
+        section {
+            padding: 60px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        h2 {
+            font-size: 26px;
+            color: var(--primary);
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            border-left: 4px solid var(--primary);
+            padding-left: 20px;
+        }
+
+        h3 {
+            font-size: 18px;
+            color: var(--accent);
+            margin: 30px 0 15px 0;
+        }
+
+        p {
+            margin-bottom: 25px;
+            font-size: 17px;
+            color: var(--text-dim);
+            text-align: justify;
+        }
+
+        strong {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .highlight-box {
+            background: var(--surface);
+            padding: 30px;
+            margin: 40px 0;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 107, 0, 0.2);
+        }
+
+        ul, ol {
+            margin: 0 0 30px 30px;
+            color: var(--text-dim);
+        }
+
+        li {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .nota-aclaratoria {
+            font-style: italic;
+            font-size: 14px;
+            color: var(--accent);
+            border-left: 2px solid var(--accent);
+            padding-left: 20px;
+            margin-top: 20px;
+        }
+
+        /* --- Reflexion Section --- */
+        .q-a {
+            background: rgba(255,255,255,0.02);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .question {
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .answer {
+            font-size: 16px;
+            color: var(--text-dim);
+        }
+
+        /* --- Footer --- */
+        .footer {
+            text-align: center;
+            padding: 100px 0;
+        }
+
+        .cta {
+            font-size: clamp(32px, 10vw, 48px);
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 20px;
+            letter-spacing: 5px;
+        }
+
+        /* --- Print Styles --- */
+        @media print {
+            @page {
+                margin: 2cm;
+            }
+            body {
+                background: #fff;
+                color: #000;
+            }
+            .container {
+                max-width: 100%;
+                padding: 0;
+            }
+            .cover {
+                background: #000 !important;
+                -webkit-print-color-adjust: exact;
+                height: 100vh;
+            }
+            .main-title {
+                -webkit-text-fill-color: initial;
+                color: #fff !important;
+            }
+            section {
+                padding: 30px 0;
+                page-break-inside: avoid;
+            }
+            .highlight-box {
+                background: #f4f4f4 !important;
+                border: 1px solid #FF6B00 !important;
+                color: #333 !important;
+            }
+            p, li, .answer {
+                color: #333 !important;
+            }
+            h2, h3 {
+                color: #FF6B00 !important;
+                border-left-color: #FF6B00 !important;
+            }
+            .q-a {
+                background: #f9f9f9 !important;
+                border: 1px solid #eee !important;
+            }
+            .cover::before { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Cover Page -->
+    <div class="cover">
+        <div class="cover-content">
+            <span class="utn-logo">Universidad Tecnológica Nacional (UTN) - Facultad Regional Reconquista</span>
+            <div class="brand-logo">BAILA CON WALLY</div>
+            <h1 class="main-title">PROYECTO FINAL:<br>ECOSISTEMA DIGITAL</h1>
+            <p class="subtitle">De una idea en Instagram a una infraestructura de negocio profesional</p>
+            
+            <div class="student-info">
+                <div class="info-item">
+                    <span class="info-label">ALUMNO</span>
+                    <span class="info-value">Walter "Wally" Camacho</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">EMPRENDIMIENTO</span>
+                    <span class="info-value">Baila con Wally</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">INSTITUCIÓN</span>
+                    <span class="info-value">UTN - Facultad Regional Reconquista</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        
+        <!-- Section 1 -->
+        <section id="punto-partida">
+            <h2>1. El Punto de Partida: Profesionalizar la pasión</h2>
+            <p>Todo comenzó con una necesidad real y tangible: profesionalizar la pasión. Mi nombre es Walter "Wally" Camacho y soy instructor de baile con más de 20 años de trayectoria. Como emprendedor autónomo, mi marca es mi empresa, y tras años de trabajo, sentí la necesidad de dar un salto de calidad que reflejara ese recorrido. En el escenario digital actual, "existir" en Instagram o WhatsApp ya no era suficiente. Me encontraba con una gran cantidad de información dispersa: consultas de alumnos, por un lado, registros de pagos informales por otro y coreografías perdidas en chats de WhatsApp. Mi objetivo central fue crear un Ecosistema Digital Integral que centralizara toda la operación de "Baila con Wally", logrando una estética premium y, fundamentalmente, una funcionalidad optimizada para dispositivos móviles, que es donde reside mi audiencia y donde gestiono mi día a día profesional.</p>
+        </section>
+
+        <!-- Section 2 -->
+        <section id="metodologia">
+            <h2>2. Metodología y Rol de la Inteligencia Artificial</h2>
+            <p>Como alguien que está dando sus primeros pasos firmes en el desarrollo técnico, decidí abordar este proyecto desde una perspectiva moderna: la colaboración estratégica con la Inteligencia Artificial. No busqué que la IA reemplazara mi visión, sino que actuara como un equipo de especialistas bajo mi dirección. Utilicé un mix de herramientas potentes: Gemini y ChatGPT para la lógica y resolución de problemas, y Antigravity para la generación de código puro (HTML, CSS y JavaScript). En este proceso, mi rol fue el de un "Director de Orquesta". Fui yo quien definió la arquitectura del negocio, la estética visual de la marca y la utilidad específica de cada herramienta. La IA me permitió traducir mis necesidades de negocio en soluciones técnicas de alto nivel, logrando resultados que, de otra forma, habrían requerido un equipo de programadores senior; algo que para una estructura pequeña como la que manejo hoy en día sería de difícil acceso por los costos operativos que implica contar con especialistas en programación, secretaría, community management y asesoría financiera de forma simultánea.</p>
+        </section>
+
+        <!-- Section 3 -->
+        <section id="arquitectura">
+            <h2>3. Arquitectura del Proyecto: El Panel de Herramientas</h2>
+            <p>El corazón de este trabajo práctico es el desarrollo de un panel centralizado que agrupa una batería de micro-aplicaciones diseñadas a medida. Este ecosistema puede visitarse en el siguiente acceso principal: <a href="https://bailaconwally.netlify.app/hub/" style="color: var(--primary); text-decoration: none;">https://bailaconwally.netlify.app/hub/</a></p>
+            
+            <p>Es fundamental realizar una distinción entre los niveles de acceso de este ecosistema:</p>
+
+            <h3>A. Interfaz Pública (Acceso General)</h3>
+            <ul>
+                <li><strong>Landing Page (Link-in-bio):</strong> Una solución personalizada que reemplaza a herramientas genéricas, diseñada específicamente para captar alumnos desde Instagram de forma rápida y visualmente atractiva.</li>
+                <li><strong>Sitio Web Oficial:</strong> La cara visible de la marca, con un diseño moderno en "Dark Mode", efectos de interacción avanzados y toda la información necesaria para el público.</li>
+            </ul>
+
+            <h3>B. Panel de Gestión Privado (Uso Personal y Evaluación)</h3>
+            <p>Aquí es donde reside la mayor complejidad técnica. He desarrollado una serie de herramientas de uso exclusivo para la gestión de mi negocio, las cuales presento en este trabajo para su evaluación a través del link mencionado arriba, pero que no son accesibles al público general:</p>
+            <ul>
+                <li><strong>Administrador Financiero:</strong> Una aplicación robusta para registrar ingresos de clases de Zumba, Ritmos Latinos y sesiones privadas de Salsa. Permite un control total de la rentabilidad y la generación de reportes en PDF.</li>
+                <li><strong>Gestor de Coreografías:</strong> Un espacio digital donde organizo mis rutinas, notas de pasos y música, evitando la dispersión de información.</li>
+                <li><strong>Planner de Contenido Estratégico:</strong> Una herramienta de planificación para redes sociales que me ayuda a diseñar ganchos (hooks) y estructuras de video para TikTok e Instagram.</li>
+            </ul>
+
+            <div class="nota-aclaratoria">
+                <strong>Nota Aclaratoria:</strong> Este panel de herramientas completo es el que entrego para la revisión docente. Mientras que la Web y la Landing son públicas para mis alumnos, el acceso a las aplicaciones de gestión financiera y planificación es estrictamente privado y personal, garantizando la seguridad de los datos de mi negocio.
+            </div>
+        </section>
+
+        <!-- Section 4 -->
+        <section id="desafios">
+            <h2>4. Desafíos Técnicos y Soluciones Innovadoras</h2>
+            <p>Durante el desarrollo, nos enfrentamos a desafíos que resolvimos mediante el uso iterativo de IA:</p>
+            <ul>
+                <li><strong>Corrección de Visualización:</strong> Implementamos soluciones de CSS avanzado para resolver problemas de orientación en las imágenes subidas desde móviles, asegurando que la estética "Baila con Wally" se mantuviera intacta.</li>
+                <li><strong>Identidad Visual Coherente:</strong> Logramos unificar toda la iconografía de redes sociales bajo un estilo de "luz de neón" blanca sobre fondo oscuro, reforzando el concepto de marca premium.</li>
+                <li><strong>Optimización de Rendimiento:</strong> Realizamos procesos de limpieza de código para asegurar que todas las aplicaciones carguen de manera instantánea, priorizando la experiencia del usuario.</li>
+            </ul>
+        </section>
+
+        <!-- Section 5 -->
+        <section id="reflexion">
+            <h2>5. Reflexión Personal</h2>
+            
+            <div class="q-a">
+                <div class="question">¿Qué fue lo más valioso que aprendió en el curso?</div>
+                <div class="answer">Lo más valioso fue el cambio de mentalidad. Descubrí que, gracias a la democratización del conocimiento impulsada por la IA, puedo participar activamente en la construcción de herramientas tecnológicas potentes que antes se sentían fuera de mi alcance. No se trata de simplificar la labor del programador, sino de potenciar mi capacidad creativa para materializar soluciones complejas. Aprendí a estructurar mis ideas de forma lógica para comunicarme con la tecnología y a entender que esta, bien aplicada, es el mejor aliado para escalar un negocio personal.</div>
+            </div>
+
+            <div class="q-a">
+                <div class="question">¿Cómo cree que la IA impactará su vida profesional o personal en el futuro?</div>
+                <div class="answer">El impacto será una ganancia rotunda de tiempo y calidad. Mi mayor hito ha sido la creación del asistente coreográfico; lo que antes me tomaba semanas de análisis musical y anotaciones manuales, hoy se resuelve en horas con una profundidad mayor. Esto me permite dedicarme a lo que realmente amo: estar frente a mis alumnos con más energía y mejores recursos. Además, este curso me abrió el apetito por seguir aprendiendo; entiendo que este es solo el Nivel 1 y que hay un universo de posibilidades por explorar para seguir evolucionando mi sistema.</div>
+            </div>
+
+            <div class="q-a">
+                <div class="question">¿Ha cambiado su percepción sobre la IA desde el inicio del curso?</div>
+                <div class="answer">Totalmente. Entré con la curiosidad de "ver de qué se trataba" y hoy me voy con la certeza de que es un socio estratégico. Dejé de verla como una herramienta de "copiar y pegar" para verla como un motor de ideas y un analista de datos eficiente. Pasé de la incertidumbre a la claridad en su uso diario.</div>
+            </div>
+
+            <div class="q-a">
+                <div class="question">¿Qué me llevo de este curso?</div>
+                <div class="answer">Me llevo la seguridad de estar a la vanguardia y la convicción de que esto es solo el principio. Me llevo un sistema de trabajo donde la IA gestiona lo técnico y administrativo, liberándome a mí el espacio para la creatividad y la conexión con mi audiencia. Pero, sobre todo, me llevo la motivación para seguir capacitándome: ¡vamos por más!</div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="cta">¡VAMOS POR MÁS!</div>
+            <div class="brand-logo">BAILA CON WALLY</div>
+            <p>Ecosistema Digital 2026 • UTN Reconquista</p>
+        </div>
+
+    </div>
+
+</body>
+</html>

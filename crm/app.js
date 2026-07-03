@@ -1,0 +1,1516 @@
+/* --- LÓGICA DE CONTROL DEL CRM "BAILA CON WALLY" --- */
+
+// --- DATOS INICIALES (SEMILLA) ---
+const INITIAL_DATA = {
+    settings: {
+        combustiblePrecio: 950.00,
+        combustibleRendimiento: 12.5,
+        logisticaBase: "Sede Central (San Isidro)"
+    },
+    sedes: [
+        {
+            id: "sede-1",
+            nombre: "Glorietas",
+            precios: { 1: 5000, 2: 8500, 3: 11000 },
+            alquiler: 15000,
+            distancia: 12.4,
+            viajesSemanales: 2
+        },
+        {
+            id: "sede-2",
+            nombre: "Remeros",
+            precios: { 1: 5500, 2: 9500, 3: 12500 },
+            alquiler: 18000,
+            distancia: 21.8,
+            viajesSemanales: 1
+        },
+        {
+            id: "sede-3",
+            nombre: "Pioneras",
+            precios: { 1: 5200, 2: 9000, 3: 11800 },
+            alquiler: 16000,
+            distancia: 16.5,
+            viajesSemanales: 2
+        }
+    ],
+    descuentos: [
+        {
+            id: "desc-1",
+            nombre: "Descuento Familiar",
+            tipo: "porcentaje",
+            valor: 10
+        },
+        {
+            id: "desc-2",
+            nombre: "Beca Parcial",
+            tipo: "porcentaje",
+            valor: 50
+        },
+        {
+            id: "desc-3",
+            nombre: "Descuento Amigo",
+            tipo: "fijo",
+            valor: 1500
+        }
+    ],
+    alumnos: [],
+    asistencias: [],
+    liquidaciones: []
+};
+
+// --- ESTADO GLOBAL ---
+let db = { ...INITIAL_DATA };
+
+// --- CARGAR / GUARDAR LOCALSTORAGE ---
+function loadDB() {
+    const rawData = localStorage.getItem("baila_con_wally_crm_data");
+    if (rawData) {
+        try {
+            db = JSON.parse(rawData);
+            // Asegurar que existan todos los nodos
+            if (!db.settings) db.settings = { ...INITIAL_DATA.settings };
+            if (!db.sedes) db.sedes = [...INITIAL_DATA.sedes];
+            if (!db.descuentos) db.descuentos = [...INITIAL_DATA.descuentos];
+            if (!db.alumnos) db.alumnos = [];
+            if (!db.asistencias) db.asistencias = [];
+            if (!db.liquidaciones) db.liquidaciones = [];
+        } catch (e) {
+            console.error("Error cargando base de datos, usando datos iniciales", e);
+            db = { ...INITIAL_DATA };
+        }
+    } else {
+        db = { ...INITIAL_DATA };
+        saveDB();
+    }
+}
+
+function saveDB() {
+    localStorage.setItem("baila_con_wally_crm_data", JSON.stringify(db));
+}
+
+// --- UTILIDADES: NOTIFICACIONES (TOAST) ---
+function showToast(message, type = "success") {
+    const container = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <span class="toast-message">${message}</span>
+        <span class="toast-close">&times;</span>
+    `;
+    container.appendChild(toast);
+    
+    // Trigger animación entrada
+    setTimeout(() => toast.classList.add("show"), 10);
+    
+    // Remover después de 3.5 segundos
+    const dismissTimer = setTimeout(() => dismiss(), 3500);
+    
+    function dismiss() {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+    }
+    
+    toast.querySelector(".toast-close").addEventListener("click", () => {
+        clearTimeout(dismissTimer);
+        dismiss();
+    });
+}
+
+// --- FORMATO DE MONEDA Y NÚMEROS ---
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(amount);
+}
+
+function formatKm(val) {
+    return new Intl.NumberFormat('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(val) + " km";
+}
+
+// --- NAVEGACIÓN DE VISTAS (TABS) ---
+const VIEW_INFO = {
+    cimientos: { title: "Configuración de los Cimientos", subtitle: "Gestiona sedes, precios, descuentos y costos logísticos iniciales." },
+    alumnos: { title: "Fase 2: Carga de Datos y Limpieza", subtitle: "Importa tu team y define las clases mensuales asignadas." },
+    presentismo: { title: "Fase 3: Automatización y Asistencia", subtitle: "Marca las asistencias de tus alumnos y gestiona las alertas de pases." },
+    liquidacion: { title: "Fase 4: Cobros y Liquidación Automática", subtitle: "Calcula cobros del mes y visualiza las órdenes de pago." },
+    tablero: { title: "Tablero Operativo de Control", subtitle: "Analiza el rendimiento general, la ocupación de salas y la rentabilidad." }
+};
+
+function initNavigation() {
+    const navItems = document.querySelectorAll(".nav-item");
+    const sections = document.querySelectorAll(".view-section");
+    const viewTitle = document.getElementById("view-title");
+    const viewSubtitle = document.getElementById("view-subtitle");
+
+    navItems.forEach(item => {
+        item.addEventListener("click", (e) => {
+            e.preventDefault();
+            const tabId = item.getAttribute("data-tab");
+            
+            navItems.forEach(nav => nav.classList.remove("active"));
+            sections.forEach(sec => sec.classList.remove("active"));
+            
+            item.classList.add("active");
+            document.getElementById(`view-${tabId}`).classList.add("active");
+            
+            // Actualizar títulos
+            if (VIEW_INFO[tabId]) {
+                viewTitle.innerText = VIEW_INFO[tabId].title;
+                viewSubtitle.innerText = VIEW_INFO[tabId].subtitle;
+            }
+        });
+    });
+}
+
+// --- LÓGICA DE LA FASE 1: CONFIGURACIÓN DE CIMIENTOS ---
+
+// Renderizar Sedes
+function renderSedes() {
+    const tbody = document.getElementById("tbody-sedes");
+    tbody.innerHTML = "";
+    
+    db.sedes.forEach(sede => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td style="font-weight: 600; color: var(--text-primary);">${sede.nombre}</td>
+            <td>${formatCurrency(sede.precios[1])}</td>
+            <td>${formatCurrency(sede.precios[2])}</td>
+            <td>${formatCurrency(sede.precios[3])}</td>
+            <td>${formatCurrency(sede.alquiler)}</td>
+            <td>
+                <button class="btn btn-secondary btn-sm btn-icon-only" onclick="editSede('${sede.id}')" title="Editar Sede"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button class="btn btn-danger-outline btn-sm btn-icon-only" onclick="deleteSede('${sede.id}')" title="Eliminar Sede"><i class="fa-solid fa-trash-can"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    // Al actualizar sedes, actualizamos la tabla logística
+    renderLogistica();
+    
+    // Sincronizar selectores y vistas de alumnos y presentismo
+    if (typeof populateAlumnoDropdowns === 'function') {
+        populateAlumnoDropdowns();
+        renderAlumnos();
+    }
+    if (typeof populatePresentismoSedeDropdown === 'function') {
+        populatePresentismoSedeDropdown();
+        renderPresentismo();
+    }
+}
+
+// Renderizar Descuentos
+function renderDescuentos() {
+    const container = document.getElementById("list-descuentos");
+    container.innerHTML = "";
+    
+    if (db.descuentos.length === 0) {
+        container.innerHTML = `<p class="text-muted text-center text-sm mt-3">No hay etiquetas de descuento configuradas.</p>`;
+        return;
+    }
+    
+    db.descuentos.forEach(desc => {
+        const div = document.createElement("div");
+        div.className = "list-item";
+        
+        const valorText = desc.tipo === "porcentaje" ? `${desc.valor}%` : formatCurrency(desc.valor);
+        
+        div.innerHTML = `
+            <div class="discount-badge">
+                <span class="discount-tag">${desc.nombre}</span>
+                <span class="discount-value">${valorText}</span>
+            </div>
+            <div style="display: flex; gap: 4px;">
+                <button class="btn btn-secondary btn-sm btn-icon-only" onclick="editDescuento('${desc.id}')" style="height:26px; width:26px; padding:0; font-size:10px;" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button class="btn btn-danger-outline btn-sm btn-icon-only" onclick="deleteDescuento('${desc.id}')" style="height:26px; width:26px; padding:0; font-size:10px;" title="Eliminar"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+
+    // Sincronizar selectores y vistas de alumnos (si la función existe)
+    if (typeof populateAlumnoDropdowns === 'function') {
+        populateAlumnoDropdowns();
+        renderAlumnos();
+    }
+}
+
+// Calcular y Renderizar Logística
+function renderLogistica() {
+    const tbody = document.getElementById("tbody-logistica");
+    tbody.innerHTML = "";
+    
+    const precioLitro = parseFloat(document.getElementById("input-combustible-precio").value) || 0;
+    const rendimiento = parseFloat(document.getElementById("input-combustible-rendimiento").value) || 1;
+    
+    if (db.sedes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Configura al menos una sede para ver los costos logísticos.</td></tr>`;
+        return;
+    }
+
+    let totalTeoricoSemanal = 0;
+
+    db.sedes.forEach(sede => {
+        const distanciaIdaVuelta = sede.distancia * 2;
+        const consumoViaje = distanciaIdaVuelta / rendimiento;
+        const costoViaje = consumoViaje * precioLitro;
+        
+        // Viajes semanales configurados
+        const viajesSem = sede.viajesSemanales || 2;
+        const costoTeoricoSede = costoViaje * viajesSem;
+        totalTeoricoSemanal += costoTeoricoSede;
+        
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td style="font-weight: 600;">${sede.nombre}</td>
+            <td>${formatKm(sede.distancia)} (${formatKm(distanciaIdaVuelta)} ida/vuelta)</td>
+            <td class="text-muted">
+                ${distanciaIdaVuelta.toFixed(1)} km / ${rendimiento.toFixed(1)} km/L = <strong>${consumoViaje.toFixed(2)} L</strong> (×${viajesSem} viajes/sem)
+            </td>
+            <td style="color: var(--accent-light); font-weight: 600;">
+                ${formatCurrency(costoViaje)} viaje / <span class="text-muted" style="font-size: 11px;">${formatCurrency(costoTeoricoSede)} sem</span>
+            </td>
+            <td>
+                <button class="btn btn-secondary btn-sm" onclick="editDistancia('${sede.id}')"><i class="fa-solid fa-road" style="margin-right: 4px;"></i> Editar km</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // Actualizar Comparador Logístico
+    const gastoReal = db.settings.logisticaGastoReal || 0;
+    const desviacion = gastoReal - totalTeoricoSemanal;
+    
+    document.getElementById("logistica-costo-teorico").innerText = formatCurrency(totalTeoricoSemanal);
+    document.getElementById("logistica-costo-real").innerText = formatCurrency(gastoReal);
+    
+    const desviacionEl = document.getElementById("logistica-desviacion");
+    desviacionEl.innerText = (desviacion > 0 ? "+" : "") + formatCurrency(desviacion);
+    
+    if (desviacion > 0) {
+        desviacionEl.style.color = "var(--danger-light)";
+    } else if (desviacion < 0) {
+        desviacionEl.style.color = "var(--success-light)";
+    } else {
+        desviacionEl.style.color = "var(--text-primary)";
+    }
+}
+
+// Cargar Valores Iniciales de Combustible en inputs
+function initLogisticaInputs() {
+    const inputPrecio = document.getElementById("input-combustible-precio");
+    const inputRendimiento = document.getElementById("input-combustible-rendimiento");
+    const inputBase = document.getElementById("input-logistica-base");
+    const inputGastoReal = document.getElementById("input-logistica-gasto-real");
+    
+    inputPrecio.value = db.settings.combustiblePrecio;
+    inputRendimiento.value = db.settings.combustibleRendimiento;
+    inputBase.value = db.settings.logisticaBase;
+    inputGastoReal.value = db.settings.logisticaGastoReal || "";
+    
+    // Listeners para recálculo instantáneo
+    [inputPrecio, inputRendimiento].forEach(input => {
+        input.addEventListener("input", () => {
+            db.settings.combustiblePrecio = parseFloat(inputPrecio.value) || 0;
+            db.settings.combustibleRendimiento = parseFloat(inputRendimiento.value) || 1;
+            saveDB();
+            renderLogistica();
+        });
+    });
+    
+    inputBase.addEventListener("change", () => {
+        db.settings.logisticaBase = inputBase.value;
+        saveDB();
+        showToast("Ubicación de base actualizada");
+    });
+
+    inputGastoReal.addEventListener("input", () => {
+        db.settings.logisticaGastoReal = parseFloat(inputGastoReal.value) || 0;
+        saveDB();
+        renderLogistica();
+    });
+}
+
+// --- OPERACIONES DE SEDES ---
+const modalSede = document.getElementById("modal-sede");
+const formSede = document.getElementById("form-sede");
+
+document.getElementById("btn-add-sede").addEventListener("click", () => {
+    document.getElementById("modal-sede-title").innerText = "Nueva Sede";
+    formSede.reset();
+    document.getElementById("form-sede-id").value = "";
+    document.getElementById("form-input-sede-viajes").value = 2; // Valor por defecto
+    openModal(modalSede);
+});
+
+document.getElementById("close-modal-sede").addEventListener("click", () => closeModal(modalSede));
+document.getElementById("btn-cancel-sede").addEventListener("click", () => closeModal(modalSede));
+
+formSede.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const id = document.getElementById("form-sede-id").value;
+    const nombre = document.getElementById("form-input-sede-nombre").value.trim();
+    const p1 = parseFloat(document.getElementById("form-input-sede-precio1").value) || 0;
+    const p2 = parseFloat(document.getElementById("form-input-sede-precio2").value) || 0;
+    const p3 = parseFloat(document.getElementById("form-input-sede-precio3").value) || 0;
+    const alquiler = parseFloat(document.getElementById("form-input-sede-alquiler").value) || 0;
+    const distancia = parseFloat(document.getElementById("form-input-sede-distancia").value) || 0;
+    const viajesSemanales = parseInt(document.getElementById("form-input-sede-viajes").value) || 2;
+    
+    if (id) {
+        // Editar existente
+        const index = db.sedes.findIndex(s => s.id === id);
+        if (index !== -1) {
+            db.sedes[index] = { id, nombre, precios: { 1: p1, 2: p2, 3: p3 }, alquiler, distancia, viajesSemanales };
+            showToast(`Sede "${nombre}" actualizada correctamente.`);
+        }
+    } else {
+        // Crear nueva
+        const newId = "sede-" + Date.now();
+        db.sedes.push({ id: newId, nombre, precios: { 1: p1, 2: p2, 3: p3 }, alquiler, distancia, viajesSemanales });
+        showToast(`Sede "${nombre}" agregada con éxito.`);
+    }
+    
+    saveDB();
+    renderSedes();
+    closeModal(modalSede);
+});
+
+function editSede(id) {
+    const sede = db.sedes.find(s => s.id === id);
+    if (!sede) return;
+    
+    document.getElementById("modal-sede-title").innerText = "Editar Sede";
+    document.getElementById("form-sede-id").value = sede.id;
+    document.getElementById("form-input-sede-nombre").value = sede.nombre;
+    document.getElementById("form-input-sede-precio1").value = sede.precios[1];
+    document.getElementById("form-input-sede-precio2").value = sede.precios[2];
+    document.getElementById("form-input-sede-precio3").value = sede.precios[3];
+    document.getElementById("form-input-sede-alquiler").value = sede.alquiler;
+    document.getElementById("form-input-sede-distancia").value = sede.distancia;
+    document.getElementById("form-input-sede-viajes").value = sede.viajesSemanales || 2;
+    
+    openModal(modalSede);
+}
+
+function deleteSede(id) {
+    const sede = db.sedes.find(s => s.id === id);
+    if (!sede) return;
+    
+    if (confirm(`¿Estás seguro de que deseas eliminar la sede "${sede.nombre}"? Esto afectará los cálculos logísticos.`)) {
+        db.sedes = db.sedes.filter(s => s.id !== id);
+        saveDB();
+        renderSedes();
+        showToast(`Sede "${sede.nombre}" eliminada.`, "danger");
+    }
+}
+
+function editDistancia(id) {
+    const sede = db.sedes.find(s => s.id === id);
+    if (!sede) return;
+    
+    const nuevaDist = prompt(`Introduce la distancia de ida en km para ${sede.nombre}:`, sede.distancia);
+    if (nuevaDist !== null) {
+        const val = parseFloat(nuevaDist);
+        if (!isNaN(val) && val >= 0) {
+            sede.distancia = val;
+            saveDB();
+            renderSedes();
+            showToast(`Distancia de ${sede.nombre} actualizada.`);
+        } else {
+            showToast("Valor de distancia inválido", "danger");
+        }
+    }
+}
+
+
+
+// --- OPERACIONES DE DESCUENTOS ---
+const modalDescuento = document.getElementById("modal-descuento");
+const formDescuento = document.getElementById("form-descuento");
+
+document.getElementById("btn-add-descuento").addEventListener("click", () => {
+    document.getElementById("modal-descuento-title").innerText = "Nueva Etiqueta de Descuento";
+    formDescuento.reset();
+    document.getElementById("form-descuento-id").value = "";
+    openModal(modalDescuento);
+});
+
+document.getElementById("close-modal-descuento").addEventListener("click", () => closeModal(modalDescuento));
+document.getElementById("btn-cancel-descuento").addEventListener("click", () => closeModal(modalDescuento));
+
+formDescuento.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const id = document.getElementById("form-descuento-id").value;
+    const nombre = document.getElementById("form-input-descuento-nombre").value.trim();
+    const tipo = document.getElementById("form-input-descuento-tipo").value;
+    const valor = parseFloat(document.getElementById("form-input-descuento-valor").value) || 0;
+    
+    if (id) {
+        const index = db.descuentos.findIndex(d => d.id === id);
+        if (index !== -1) {
+            db.descuentos[index] = { id, nombre, tipo, valor };
+            showToast(`Descuento "${nombre}" actualizado.`);
+        }
+    } else {
+        const newId = "desc-" + Date.now();
+        db.descuentos.push({ id: newId, nombre, tipo, valor });
+        showToast(`Descuento "${nombre}" creado.`);
+    }
+    
+    saveDB();
+    renderDescuentos();
+    closeModal(modalDescuento);
+});
+
+function editDescuento(id) {
+    const desc = db.descuentos.find(d => d.id === id);
+    if (!desc) return;
+    
+    document.getElementById("modal-descuento-title").innerText = "Editar Etiqueta de Descuento";
+    document.getElementById("form-descuento-id").value = desc.id;
+    document.getElementById("form-input-descuento-nombre").value = desc.nombre;
+    document.getElementById("form-input-descuento-tipo").value = desc.tipo;
+    document.getElementById("form-input-descuento-valor").value = desc.valor;
+    
+    openModal(modalDescuento);
+}
+
+function deleteDescuento(id) {
+    const desc = db.descuentos.find(d => d.id === id);
+    if (!desc) return;
+    
+    if (confirm(`¿Eliminar la etiqueta de descuento "${desc.nombre}"?`)) {
+        db.descuentos = db.descuentos.filter(d => d.id !== id);
+        saveDB();
+        renderDescuentos();
+        showToast(`Descuento "${desc.nombre}" eliminado.`, "danger");
+    }
+}
+
+// --- MODAL UTILS ---
+const modalAlumno = document.getElementById("modal-alumno");
+const formAlumno = document.getElementById("form-alumno");
+
+function openModal(modal) {
+    modal.classList.add("show");
+}
+
+function closeModal(modal) {
+    modal.classList.remove("show");
+}
+
+// Cerrar modales si se hace clic fuera del contenido
+window.addEventListener("click", (e) => {
+    if (e.target === modalSede) closeModal(modalSede);
+    if (e.target === modalDescuento) closeModal(modalDescuento);
+    if (e.target === modalAlumno) closeModal(modalAlumno);
+});
+
+// --- LÓGICA DE LA FASE 2: GESTIÓN DE ALUMNOS ---
+
+const DEMO_ALUMNOS = [
+    {
+        id: "alum-1",
+        nombre: "Delfina Maranzana",
+        telefono: "5491138402941",
+        sedeId: "sede-1",
+        frecuencia: 2,
+        descuentoId: "desc-1", // Descuento Familiar
+        clasesDisponibles: 8,
+        clasesTotales: 8
+    },
+    {
+        id: "alum-2",
+        nombre: "Bautista Mitre",
+        telefono: "5491150493821",
+        sedeId: "sede-2",
+        frecuencia: 3,
+        descuentoId: "desc-2", // Beca Parcial
+        clasesDisponibles: 12,
+        clasesTotales: 12
+    },
+    {
+        id: "alum-3",
+        nombre: "Juana Martínez",
+        telefono: "5491129481039",
+        sedeId: "sede-3",
+        frecuencia: 1,
+        descuentoId: "",
+        clasesDisponibles: 4,
+        clasesTotales: 4
+    },
+    {
+        id: "alum-4",
+        nombre: "Catalina Rodríguez",
+        telefono: "5491162049182",
+        sedeId: "sede-1",
+        frecuencia: 2,
+        descuentoId: "",
+        clasesDisponibles: 8,
+        clasesTotales: 8
+    }
+];
+
+// Llenar selectores dinámicos
+function populateAlumnoDropdowns() {
+    const filterSede = document.getElementById("select-filter-sede");
+    const formSede = document.getElementById("form-input-alumno-sede");
+    const formDescuento = document.getElementById("form-input-alumno-descuento");
+    
+    // Guardar selecciones actuales
+    const currentFilter = filterSede.value;
+    const currentFormSede = formSede.value;
+    const currentFormDesc = formDescuento.value;
+    
+    // 1. Selector de filtro
+    filterSede.innerHTML = '<option value="">Todas las sedes</option>';
+    db.sedes.forEach(s => {
+        filterSede.innerHTML += `<option value="${s.id}">${s.nombre}</option>`;
+    });
+    filterSede.value = currentFilter;
+    
+    // 2. Selector en formulario (sede)
+    formSede.innerHTML = '<option value="" disabled selected>Selecciona una sede</option>';
+    db.sedes.forEach(s => {
+        formSede.innerHTML += `<option value="${s.id}">${s.nombre}</option>`;
+    });
+    if (db.sedes.find(s => s.id === currentFormSede)) {
+        formSede.value = currentFormSede;
+    }
+    
+    // 3. Selector en formulario (descuento)
+    formDescuento.innerHTML = '<option value="">Ninguno</option>';
+    db.descuentos.forEach(d => {
+        const valorText = d.tipo === "porcentaje" ? `${d.valor}%` : `$${d.valor}`;
+        formDescuento.innerHTML += `<option value="${d.id}">${d.nombre} (${valorText})</option>`;
+    });
+    formDescuento.value = currentFormDesc;
+}
+
+// Renderizar listado de alumnos y estadísticas
+function renderAlumnos() {
+    const tbody = document.getElementById("tbody-alumnos");
+    tbody.innerHTML = "";
+    
+    const searchTerm = document.getElementById("input-search-alumnos").value.toLowerCase().trim();
+    const filterSede = document.getElementById("select-filter-sede").value;
+    
+    let totalAlumnosValue = 0;
+    let totalClasesValue = 0;
+    let alumnosDescuentoValue = 0;
+    
+    const alumnosFiltrados = db.alumnos.filter(al => {
+        // Filtro por búsqueda
+        const matchSearch = al.nombre.toLowerCase().includes(searchTerm) || al.telefono.includes(searchTerm);
+        // Filtro por sede
+        const matchSede = !filterSede || al.sedeId === filterSede;
+        return matchSearch && matchSede;
+    });
+
+    // Calcular estadísticas sobre los alumnos de la base general
+    db.alumnos.forEach(al => {
+        totalAlumnosValue++;
+        totalClasesValue += al.clasesDisponibles;
+        if (al.descuentoId) alumnosDescuentoValue++;
+    });
+    
+    document.getElementById("stat-total-alumnos").innerText = totalAlumnosValue;
+    document.getElementById("stat-total-clases").innerText = totalClasesValue;
+    document.getElementById("stat-alumnos-descuento").innerText = alumnosDescuentoValue;
+
+    if (alumnosFiltrados.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No se encontraron alumnos registrados. ${db.alumnos.length === 0 ? 'Presiona "Registrar Alumno" o "Cargar Demo".' : ''}</td></tr>`;
+        return;
+    }
+
+    alumnosFiltrados.forEach(al => {
+        const sedeObj = db.sedes.find(s => s.id === al.sedeId);
+        const sedeNombre = sedeObj ? sedeObj.nombre : "Sede Desconocida";
+        
+        const descObj = db.descuentos.find(d => d.id === al.descuentoId);
+        const descBadge = descObj 
+            ? `<span class="discount-tag">${descObj.nombre}</span>` 
+            : `<span class="text-muted text-sm">-</span>`;
+            
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td style="font-weight: 600; color: var(--text-primary);">${al.nombre}</td>
+            <td>
+                <a href="https://wa.me/${al.telefono}" target="_blank" style="color: var(--success-light); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="Enviar WhatsApp">
+                    <i class="fa-brands fa-whatsapp" style="font-size: 1.1rem; margin-right: 4px;"></i> ${al.telefono}
+                </a>
+            </td>
+            <td>${sedeNombre}</td>
+            <td>${al.frecuencia} vez/sem</td>
+            <td>${descBadge}</td>
+            <td>
+                <span class="status-indicator" style="background-color: ${al.clasesDisponibles > 2 ? 'var(--success)' : al.clasesDisponibles > 0 ? 'var(--warning)' : 'var(--danger)'}; width:6px; height:6px;"></span>
+                <strong>${al.clasesDisponibles}</strong> / ${al.clasesTotales} clases
+            </td>
+            <td>
+                <button class="btn btn-secondary btn-sm btn-icon-only" onclick="editAlumno('${al.id}')" title="Editar Alumno"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button class="btn btn-danger-outline btn-sm btn-icon-only" onclick="deleteAlumno('${al.id}')" title="Eliminar Alumno"><i class="fa-solid fa-trash-can"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Inicializar listeners de la sección Alumnos
+function initAlumnosListeners() {
+    const btnAdd = document.getElementById("btn-add-alumno");
+    const btnCancel = document.getElementById("btn-cancel-alumno");
+    const closeBtn = document.getElementById("close-modal-alumno");
+    const selectFrecuencia = document.getElementById("form-input-alumno-frecuencia");
+    const inputClases = document.getElementById("form-input-alumno-clases");
+    
+    // Abrir modal
+    btnAdd.addEventListener("click", () => {
+        document.getElementById("modal-alumno-title").innerText = "Registrar Alumno";
+        formAlumno.reset();
+        document.getElementById("form-alumno-id").value = "";
+        
+        // Auto-calcular clases en base a la frecuencia predeterminada (2 veces/sem = 8 clases)
+        inputClases.value = 8;
+        openModal(modalAlumno);
+    });
+    
+    btnCancel.addEventListener("click", () => closeModal(modalAlumno));
+    closeBtn.addEventListener("click", () => closeModal(modalAlumno));
+    
+    // Auto-calcular clases estimadas cuando cambia la frecuencia en el formulario
+    selectFrecuencia.addEventListener("change", () => {
+        const freq = parseInt(selectFrecuencia.value) || 2;
+        inputClases.value = freq * 4;
+    });
+    
+    // Buscar y Filtrar Alumnos en tiempo real
+    document.getElementById("input-search-alumnos").addEventListener("input", renderAlumnos);
+    document.getElementById("select-filter-sede").addEventListener("change", renderAlumnos);
+    
+    // Guardar Alumno
+    formAlumno.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const id = document.getElementById("form-alumno-id").value;
+        const nombre = document.getElementById("form-input-alumno-nombre").value.trim();
+        const telefono = document.getElementById("form-input-alumno-telefono").value.replace(/\D/g, ""); // Limpiar no numéricos
+        const sedeId = document.getElementById("form-input-alumno-sede").value;
+        const frecuencia = parseInt(selectFrecuencia.value);
+        const descuentoId = document.getElementById("form-input-alumno-descuento").value;
+        const clasesTotales = parseInt(inputClases.value) || 8;
+        
+        if (!sedeId) {
+            showToast("Debes seleccionar una sede válida.", "danger");
+            return;
+        }
+        
+        if (id) {
+            // Editar
+            const index = db.alumnos.findIndex(al => al.id === id);
+            if (index !== -1) {
+                const viejo = db.alumnos[index];
+                // Mantener los pases restantes si el total no cambió, o ajustarlo si cambió
+                let clasesDisponibles = viejo.clasesDisponibles;
+                if (clasesTotales !== viejo.clasesTotales) {
+                    clasesDisponibles = clasesTotales;
+                }
+                db.alumnos[index] = { id, nombre, telefono, sedeId, frecuencia, descuentoId, clasesDisponibles, clasesTotales };
+                showToast(`Alumno "${nombre}" actualizado.`);
+            }
+        } else {
+            // Crear
+            const newId = "alum-" + Date.now();
+            db.alumnos.push({
+                id: newId,
+                nombre,
+                telefono,
+                sedeId,
+                frecuencia,
+                descuentoId,
+                clasesDisponibles: clasesTotales,
+                clasesTotales
+            });
+            showToast(`Alumno "${nombre}" registrado.`);
+        }
+        
+        saveDB();
+        renderAlumnos();
+        closeModal(modalAlumno);
+    });
+    
+    // Cargar alumnos demo
+    document.getElementById("btn-load-demo-alumnos").addEventListener("click", () => {
+        if (confirm("¿Quieres cargar el listado de alumnos de demostración para testear el sistema?")) {
+            // Asegurar que las sedes por defecto existan
+            db.alumnos = JSON.parse(JSON.stringify(DEMO_ALUMNOS));
+            saveDB();
+            renderAlumnos();
+            showToast("Alumnos demo cargados exitosamente.");
+        }
+    });
+}
+
+function editAlumno(id) {
+    const al = db.alumnos.find(alumno => alumno.id === id);
+    if (!al) return;
+    
+    document.getElementById("modal-alumno-title").innerText = "Editar Alumno";
+    document.getElementById("form-alumno-id").value = al.id;
+    document.getElementById("form-input-alumno-nombre").value = al.nombre;
+    document.getElementById("form-input-alumno-telefono").value = al.telefono;
+    document.getElementById("form-input-alumno-sede").value = al.sedeId;
+    document.getElementById("form-input-alumno-frecuencia").value = al.frecuencia;
+    document.getElementById("form-input-alumno-descuento").value = al.descuentoId;
+    document.getElementById("form-input-alumno-clases").value = al.clasesTotales;
+    
+    openModal(modalAlumno);
+}
+
+function deleteAlumno(id) {
+    const al = db.alumnos.find(alumno => alumno.id === id);
+    if (!al) return;
+    
+    if (confirm(`¿Dar de baja al alumno "${al.nombre}"?`)) {
+        db.alumnos = db.alumnos.filter(alumno => alumno.id !== id);
+        saveDB();
+        renderAlumnos();
+        showToast(`Alumno "${al.nombre}" eliminado.`, "danger");
+    }
+}
+
+// --- IMPORTACIÓN / EXPORTACIÓN JSON ---
+document.getElementById("btn-export").addEventListener("click", () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `baila_con_wally_crm_backup_${new Date().toISOString().slice(0,10)}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    showToast("Copia de seguridad exportada con éxito.");
+});
+
+const fileInput = document.getElementById("file-import-input");
+document.getElementById("btn-import").addEventListener("click", () => {
+    fileInput.click();
+});
+
+fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        try {
+            const importedData = JSON.parse(event.target.result);
+            if (importedData.sedes && importedData.descuentos && importedData.settings) {
+                db = importedData;
+                if (!db.alumnos) db.alumnos = [];
+                if (!db.asistencias) db.asistencias = [];
+                saveDB();
+                loadDB();
+                renderSedes();
+                renderDescuentos();
+                initLogisticaInputs();
+                populateAlumnoDropdowns();
+                renderAlumnos();
+                
+                // Fase 3
+                populatePresentismoSedeDropdown();
+                renderPresentismo();
+                
+                showToast("Datos importados y aplicados correctamente.");
+            } else {
+                showToast("Formato de archivo inválido. Falta estructura central.", "danger");
+            }
+        } catch (err) {
+            showToast("Error al leer el archivo JSON.", "danger");
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+    fileInput.value = ""; // Limpiar input
+});
+
+// --- REINICIAR DATOS A SEMILLA ---
+document.getElementById("btn-reset").addEventListener("click", () => {
+    if (confirm("¿Estás seguro de que quieres restablecer todos los datos a la configuración inicial? Perderás cualquier cambio realizado.")) {
+        db = { 
+            settings: { ...INITIAL_DATA.settings },
+            sedes: JSON.parse(JSON.stringify(INITIAL_DATA.sedes)),
+            descuentos: JSON.parse(JSON.stringify(INITIAL_DATA.descuentos)),
+            alumnos: [],
+            asistencias: []
+        };
+        saveDB();
+        renderSedes();
+        renderDescuentos();
+        initLogisticaInputs();
+        populateAlumnoDropdowns();
+        renderAlumnos();
+        
+        // Fase 3
+        populatePresentismoSedeDropdown();
+        renderPresentismo();
+        
+        showToast("Base de datos restablecida a los valores iniciales.", "warning");
+    }
+});
+
+// --- LÓGICA DE LA FASE 3: PRESENTISMO Y AUTOMATIZACIÓN ---
+
+function populatePresentismoSedeDropdown() {
+    const selectSede = document.getElementById("select-presentismo-sede");
+    if (!selectSede) return;
+    const currentVal = selectSede.value;
+    
+    selectSede.innerHTML = '<option value="" disabled selected>Selecciona una sede</option>';
+    db.sedes.forEach(s => {
+        selectSede.innerHTML += `<option value="${s.id}">${s.nombre}</option>`;
+    });
+    
+    if (db.sedes.find(s => s.id === currentVal)) {
+        selectSede.value = currentVal;
+    }
+}
+
+function initPresentismo() {
+    const inputFecha = document.getElementById("input-presentismo-fecha");
+    const selectSede = document.getElementById("select-presentismo-sede");
+    
+    if (!inputFecha) return;
+    
+    // Set fecha hoy por defecto en formato YYYY-MM-DD
+    const hoy = new Date();
+    const offset = hoy.getTimezoneOffset();
+    const hoyLocal = new Date(hoy.getTime() - (offset * 60 * 1000));
+    inputFecha.value = hoyLocal.toISOString().slice(0, 10);
+    
+    selectSede.addEventListener("change", renderPresentismo);
+    inputFecha.addEventListener("change", renderPresentismo);
+}
+
+function renderPresentismo() {
+    const selectSede = document.getElementById("select-presentismo-sede");
+    const inputFecha = document.getElementById("input-presentismo-fecha");
+    const tbodyPendientes = document.getElementById("tbody-presentismo-pendientes");
+    const listAsistieron = document.getElementById("list-presentismo-asistieron");
+    const tbodyAusentes = document.getElementById("tbody-presentismo-ausentes");
+    
+    if (!selectSede || !selectSede.value) {
+        tbodyPendientes.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Selecciona una sede arriba para comenzar a tomar asistencia.</td></tr>';
+        listAsistieron.innerHTML = '<p class="text-muted text-center text-sm mt-3">Nadie ha sido registrado en esta clase todavía.</p>';
+        tbodyAusentes.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Selecciona una sede arriba para ver el seguimiento de ausencias.</td></tr>';
+        document.getElementById("presentismo-pendientes-count").innerText = "Selecciona una sede.";
+        document.getElementById("presentismo-asistieron-count").innerText = "0 alumnos registrados hoy.";
+        return;
+    }
+    
+    const sedeId = selectSede.value;
+    const fecha = inputFecha.value;
+    const sedeObj = db.sedes.find(s => s.id === sedeId);
+    const sedeNombre = sedeObj ? sedeObj.nombre : "";
+    
+    // Alumnos asignados a esta sede
+    const alumnosSede = db.alumnos.filter(al => al.sedeId === sedeId);
+    
+    // Filtrar en asistieron y pendientes
+    const asistieron = [];
+    const pendientes = [];
+    
+    alumnosSede.forEach(al => {
+        const haAsistido = db.asistencias.some(asist => asist.fecha === fecha && asist.alumnoId === al.id);
+        if (haAsistido) {
+            asistieron.push(al);
+        } else {
+            pendientes.push(al);
+        }
+    });
+    
+    // 1. RENDER PENDIENTES
+    tbodyPendientes.innerHTML = "";
+    document.getElementById("presentismo-pendientes-count").innerText = `${pendientes.length} alumnos pendientes de registro.`;
+    
+    if (pendientes.length === 0) {
+        tbodyPendientes.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No hay alumnos pendientes para esta clase hoy.</td></tr>';
+    } else {
+        pendientes.forEach(al => {
+            const tr = document.createElement("tr");
+            
+            // Determinar si le quedan pocas clases
+            let alertBadge = "";
+            let presentBtnDisabled = "";
+            if (al.clasesDisponibles === 0) {
+                alertBadge = '<span class="discount-tag" style="background-color:rgba(239,68,68,0.1); color:var(--danger-light); border-color:rgba(239,68,68,0.25);">Agotado (0)</span>';
+                presentBtnDisabled = "disabled";
+            } else if (al.clasesDisponibles <= 2) {
+                alertBadge = `<span class="discount-tag" style="background-color:rgba(245,158,11,0.1); color:var(--warning); border-color:rgba(245,158,11,0.25);">Por vencer (${al.clasesDisponibles})</span>`;
+            }
+            
+            // Botón WhatsApp si quedan 1 o 2 clases
+            let whatsappBtn = "-";
+            if (al.clasesDisponibles <= 2) {
+                const wsMsg = encodeURIComponent(`Hola ${al.nombre}! Te queríamos avisar que te quedan ${al.clasesDisponibles} clases en tu paquete de danza para ${sedeNombre}. ¡Nos vemos en clase! Baila con Wally.`);
+                whatsappBtn = `
+                    <a href="https://wa.me/${al.telefono}?text=${wsMsg}" target="_blank" class="btn btn-secondary btn-sm" style="color: var(--warning); border-color: rgba(245,158,11,0.3); padding: 4px 8px; font-size:9px;">
+                        <i class="fa-brands fa-whatsapp"></i> Avisar
+                    </a>
+                `;
+            }
+            
+            tr.innerHTML = `
+                <td style="font-weight:600; color: var(--text-primary);">${al.nombre}</td>
+                <td><strong>${al.clasesDisponibles}</strong> / ${al.clasesTotales} pases</td>
+                <td>
+                    <button class="btn btn-primary btn-sm" onclick="marcarPresente('${al.id}', '${fecha}', '${sedeId}')" ${presentBtnDisabled} style="padding: 6px 12px; font-size:10px;">
+                        <i class="fa-solid fa-check"></i> Presente
+                    </button>
+                </td>
+                <td>${alertBadge} ${whatsappBtn}</td>
+            `;
+            tbodyPendientes.appendChild(tr);
+        });
+    }
+    
+    // 2. RENDER ASISTIERON
+    listAsistieron.innerHTML = "";
+    document.getElementById("presentismo-asistieron-count").innerText = `${asistieron.length} alumnos registrados hoy.`;
+    
+    if (asistieron.length === 0) {
+        listAsistieron.innerHTML = '<p class="text-muted text-center text-sm mt-3">Nadie ha sido registrado en esta clase todavía.</p>';
+    } else {
+        asistieron.forEach(al => {
+            const div = document.createElement("div");
+            div.className = "list-item";
+            div.innerHTML = `
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-weight:600; font-size:12px; color: var(--text-primary);">${al.nombre}</span>
+                    <span class="text-muted" style="font-size:10px;">Pases: ${al.clasesDisponibles} restantes</span>
+                </div>
+                <button class="btn btn-danger-outline btn-sm" onclick="deshacerAsistencia('${al.id}', '${fecha}')" style="padding:4px 8px; font-size:9px;">
+                    Deshacer
+                </button>
+            `;
+            listAsistieron.appendChild(div);
+        });
+    }
+    
+    // 3. RENDER SEGUIMIENTO AUSENTES (No asistieron hoy)
+    tbodyAusentes.innerHTML = "";
+    if (pendientes.length === 0) {
+        tbodyAusentes.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Todos los alumnos asistieron hoy. ¡Excelente retención!</td></tr>';
+    } else {
+        pendientes.forEach(al => {
+            // Encontrar última asistencia en base de datos
+            const asistenciasAlumno = db.asistencias.filter(as => as.alumnoId === al.id);
+            let ultimaAsistText = "Nunca asistió";
+            if (asistenciasAlumno.length > 0) {
+                // Ordenar por fecha descendente
+                asistenciasAlumno.sort((a,b) => b.fecha.localeCompare(a.fecha));
+                ultimaAsistText = asistenciasAlumno[0].fecha;
+            }
+            
+            const wsMsg = encodeURIComponent(`Hola ${al.nombre}! Te extrañamos hoy en clase de danza en ${sedeNombre}. ¿Todo bien? ¡Esperamos verte la próxima! Baila con Wally.`);
+            
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td style="font-weight:600; color: var(--text-primary);">${al.nombre}</td>
+                <td class="text-muted">${ultimaAsistText}</td>
+                <td>
+                    <a href="https://wa.me/${al.telefono}?text=${wsMsg}" target="_blank" class="btn btn-secondary btn-sm" style="color: var(--danger-light); border-color: rgba(239,68,68,0.2); padding: 4px 8px; font-size: 10px;">
+                        <i class="fa-brands fa-whatsapp"></i> Alerta Ausente
+                    </a>
+                </td>
+            `;
+            tbodyAusentes.appendChild(tr);
+        });
+    }
+}
+
+function marcarPresente(alumnoId, fecha, SedeId) {
+    const al = db.alumnos.find(alumno => alumno.id === alumnoId);
+    if (!al) return;
+    
+    if (al.clasesDisponibles <= 0) {
+        showToast(`El alumno ${al.nombre} no tiene clases disponibles.`, "danger");
+        return;
+    }
+    
+    // Descontar pase
+    al.clasesDisponibles--;
+    
+    // Registrar asistencia
+    db.asistencias.push({
+        id: "asist-" + Date.now(),
+        fecha,
+        alumnoId,
+        sedeId: SedeId
+    });
+    
+    saveDB();
+    renderPresentismo();
+    renderAlumnos(); // Refrescar vista alumnos para mantener contadores sincronizados
+    showToast(`Asistencia registrada para ${al.nombre}. Pases: ${al.clasesDisponibles}/${al.clasesTotales}`);
+}
+
+function deshacerAsistencia(alumnoId, fecha) {
+    const al = db.alumnos.find(alumno => alumno.id === alumnoId);
+    if (!al) return;
+    
+    // Sumar pase de vuelta (sin pasarse del total)
+    if (al.clasesDisponibles < al.clasesTotales) {
+        al.clasesDisponibles++;
+    }
+    
+    // Eliminar registro asistencia
+    db.asistencias = db.asistencias.filter(as => !(as.fecha === fecha && as.alumnoId === alumnoId));
+    
+    saveDB();
+    renderPresentismo();
+    renderAlumnos();
+    showToast(`Asistencia de ${al.nombre} revertida.`, "warning");
+}
+
+// --- LÓGICA DE LA FASE 4: LIQUIDACIONES Y TABLERO ---
+
+let chartOcupacion = null;
+let chartCaja = null;
+
+const MESES_NOMBRES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+function initLiquidaciones() {
+    const selectMes = document.getElementById("select-liquidacion-mes");
+    const btnGenerar = document.getElementById("btn-generar-liquidacion");
+    const searchLiq = document.getElementById("input-search-liquidaciones");
+    const filterEstado = document.getElementById("select-filter-liquidacion-estado");
+    
+    if (!selectMes) return;
+    
+    // Generar opciones de meses (últimos 3 meses y próximo)
+    const hoy = new Date();
+    selectMes.innerHTML = "";
+    
+    for (let i = -2; i <= 1; i++) {
+        const d = new Date(hoy.getFullYear(), hoy.getMonth() + i, 1);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const key = `${yyyy}-${mm}`;
+        const label = `${MESES_NOMBRES[d.getMonth()]} ${yyyy}`;
+        
+        const option = document.createElement("option");
+        option.value = key;
+        option.innerText = label;
+        if (i === 0) option.selected = true; // Mes actual por defecto
+        
+        selectMes.appendChild(option);
+    }
+    
+    // Listeners
+    selectMes.addEventListener("change", () => {
+        renderLiquidaciones();
+        renderTablero();
+    });
+    if (btnGenerar) btnGenerar.addEventListener("click", generarLiquidacionesCiclo);
+    if (searchLiq) searchLiq.addEventListener("input", renderLiquidaciones);
+    if (filterEstado) filterEstado.addEventListener("change", renderLiquidaciones);
+}
+
+function generarLiquidacionesCiclo() {
+    const selectMes = document.getElementById("select-liquidacion-mes");
+    const selectedMonth = selectMes.value;
+    const mesLabel = selectMes.options[selectMes.selectedIndex].text;
+    
+    if (db.alumnos.length === 0) {
+        showToast("No hay alumnos registrados para generar liquidaciones.", "warning");
+        return;
+    }
+    
+    let creados = 0;
+    
+    db.alumnos.forEach(al => {
+        // Verificar si ya existe liquidación para este alumno en este mes
+        const existe = db.liquidaciones.some(liq => liq.alumnoId === al.id && liq.mes === selectedMonth);
+        if (existe) return;
+        
+        // Calcular cuota
+        const sede = db.sedes.find(s => s.id === al.sedeId);
+        if (!sede) return;
+        
+        const freq = al.frecuencia; // 1, 2 o 3
+        const montoBase = sede.precios[freq] || 0;
+        
+        // Calcular descuento
+        let descuentoMonto = 0;
+        let descNombre = "Ninguno";
+        if (al.descuentoId) {
+            const desc = db.descuentos.find(d => d.id === al.descuentoId);
+            if (desc) {
+                descNombre = desc.nombre;
+                if (desc.tipo === "porcentaje") {
+                    descuentoMonto = montoBase * (desc.valor / 100);
+                } else if (desc.tipo === "fijo") {
+                    descuentoMonto = desc.valor;
+                }
+            }
+        }
+        
+        const montoNeto = Math.max(0, montoBase - descuentoMonto);
+        
+        db.liquidaciones.push({
+            id: "liq-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+            alumnoId: al.id,
+            mes: selectedMonth,
+            montoBase,
+            descuentoMonto,
+            montoNeto,
+            descuentoNombre: descNombre,
+            estado: "Pendiente"
+        });
+        
+        creados++;
+    });
+    
+    if (creados > 0) {
+        saveDB();
+        renderLiquidaciones();
+        renderTablero();
+        showToast(`Se generaron ${creados} órdenes de pago para el ciclo ${mesLabel}.`);
+    } else {
+        showToast(`Las cuotas del ciclo ${mesLabel} ya se encontraban liquidadas.`, "warning");
+    }
+}
+
+function renderLiquidaciones() {
+    const selectMes = document.getElementById("select-liquidacion-mes");
+    const tbody = document.getElementById("tbody-liquidaciones");
+    const countEl = document.getElementById("liquidaciones-count");
+    const searchVal = document.getElementById("input-search-liquidaciones").value.toLowerCase().trim();
+    const filterEstado = document.getElementById("select-filter-liquidacion-estado").value;
+    
+    if (!selectMes || !tbody) return;
+    
+    const selectedMonth = selectMes.value;
+    const mesLabel = selectMes.options[selectMes.selectedIndex].text;
+    
+    // Filtrar por mes
+    let filtrados = db.liquidaciones.filter(liq => liq.mes === selectedMonth);
+    
+    // Cruzar con alumnos y filtrar por buscador
+    const result = [];
+    filtrados.forEach(liq => {
+        const al = db.alumnos.find(alumno => alumno.id === liq.alumnoId);
+        if (!al) return; // Alumno eliminado posterior a la liquidación
+        
+        const sede = db.sedes.find(s => s.id === al.sedeId);
+        const sedeNombre = sede ? sede.nombre : "Desconocida";
+        
+        // Filtro buscador (nombre o teléfono)
+        if (searchVal && !al.nombre.toLowerCase().includes(searchVal) && !al.telefono.includes(searchVal)) return;
+        
+        // Filtro estado
+        if (filterEstado && liq.estado !== filterEstado) return;
+        
+        result.push({ liq, al, sedeNombre });
+    });
+    
+    tbody.innerHTML = "";
+    countEl.innerText = `${result.length} órdenes de pago listadas para ${mesLabel}.`;
+    
+    if (result.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No se encontraron órdenes de pago para los filtros seleccionados.</td></tr>`;
+        return;
+    }
+    
+    result.forEach(({ liq, al, sedeNombre }) => {
+        const tr = document.createElement("tr");
+        
+        const badgeEstado = liq.estado === "Pagado"
+            ? '<span class="discount-tag" style="background-color:rgba(16,185,129,0.1); color:var(--success-light); border-color:rgba(16,185,129,0.25);">Pagado</span>'
+            : '<span class="discount-tag" style="background-color:rgba(245,158,11,0.1); color:var(--warning); border-color:rgba(245,158,11,0.25);">Pendiente</span>';
+            
+        const btnToggle = liq.estado === "Pagado"
+            ? `<button class="btn btn-danger-outline btn-sm" onclick="toggleEstadoLiquidacion('${liq.id}')" style="padding:4px 8px; font-size:10px;"><i class="fa-solid fa-rotate-left"></i> Revertir</button>`
+            : `<button class="btn btn-primary btn-sm" onclick="toggleEstadoLiquidacion('${liq.id}')" style="padding:4px 8px; font-size:10px;"><i class="fa-solid fa-circle-check"></i> Cobrar</button>`;
+            
+        // Detalle de descuento descriptivo
+        const descTexto = liq.descuentoMonto > 0 
+            ? `${formatCurrency(liq.montoBase)} - ${formatCurrency(liq.descuentoMonto)} <span class="text-muted" style="font-size:10px;">(${liq.descuentoNombre})</span>`
+            : `${formatCurrency(liq.montoBase)}`;
+            
+        // Enlace de WhatsApp con el desglose de cuota
+        const wsMsg = encodeURIComponent(`Hola ${al.nombre}! Te compartimos el detalle de tu cuota mensual para el ciclo de ${mesLabel}:\n\n- Sede: ${sedeNombre}\n- Frecuencia: ${al.frecuencia} clase(s) por semana\n- Monto Base: ${formatCurrency(liq.montoBase)}\n${liq.descuentoMonto > 0 ? `- Descuento: ${formatCurrency(liq.descuentoMonto)} (${liq.descuentoNombre})\n` : ""}- Total Neto: *${formatCurrency(liq.montoNeto)}*\n\nPodés realizar el pago por transferencia bancaria y enviarnos el comprobante por este medio. ¡Muchas gracias! Baila con Wally.`);
+        
+        const whatsappBtn = `
+            <a href="https://wa.me/${al.telefono}?text=${wsMsg}" target="_blank" class="btn btn-secondary btn-sm" style="color:var(--accent-primary); border-color:rgba(255,107,0,0.3); padding:4px 8px; font-size:10px;">
+                <i class="fa-brands fa-whatsapp"></i> Notificar
+            </a>
+        `;
+        
+        tr.innerHTML = `
+            <td style="font-weight:600; color:var(--text-primary);">${al.nombre}</td>
+            <td>${sedeNombre} <span class="text-muted" style="font-size:11px;">(${al.frecuencia} vez/sem)</span></td>
+            <td>${descTexto}</td>
+            <td style="font-weight:700; color:var(--text-primary);">${formatCurrency(liq.montoNeto)}</td>
+            <td>${badgeEstado}</td>
+            <td>${btnToggle}</td>
+            <td>${whatsappBtn}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function toggleEstadoLiquidacion(id) {
+    const liq = db.liquidaciones.find(l => l.id === id);
+    if (!liq) return;
+    
+    liq.estado = liq.estado === "Pagado" ? "Pendiente" : "Pagado";
+    saveDB();
+    renderLiquidaciones();
+    renderTablero();
+    
+    const al = db.alumnos.find(a => a.id === liq.alumnoId);
+    const alNombre = al ? al.nombre : "";
+    if (liq.estado === "Pagado") {
+        showToast(`Cobro registrado para ${alNombre}.`);
+    } else {
+        showToast(`Pago revertido para ${alNombre}.`, "warning");
+    }
+}
+
+function renderTablero() {
+    const selectMes = document.getElementById("select-liquidacion-mes");
+    if (!selectMes) return;
+    const selectedMonth = selectMes.value;
+    
+    const liquidacionesMes = db.liquidaciones.filter(l => l.mes === selectedMonth);
+    
+    // 1. CÁLCULO FINANCIERO
+    let totalEsperado = 0;
+    let totalRecaudado = 0;
+    let cuotasPagasCount = 0;
+    
+    liquidacionesMes.forEach(liq => {
+        totalEsperado += liq.montoNeto;
+        if (liq.estado === "Pagado") {
+            totalRecaudado += liq.montoNeto;
+            cuotasPagasCount++;
+        }
+    });
+    
+    // Costo Alquileres mensual fijo
+    let totalAlquileres = 0;
+    db.sedes.forEach(s => totalAlquileres += s.alquiler);
+    
+    // Costo Combustible mensual (Teorico semanal * 4.33 semanas/mes)
+    const precioLitro = parseFloat(document.getElementById("input-combustible-precio").value) || 0;
+    const rendimiento = parseFloat(document.getElementById("input-combustible-rendimiento").value) || 1;
+    
+    let combustibleSemanal = 0;
+    db.sedes.forEach(s => {
+        const distIdaVuelta = s.distancia * 2;
+        const consumoViaje = distIdaVuelta / rendimiento;
+        const costoViaje = consumoViaje * precioLitro;
+        combustibleSemanal += costoViaje * (s.viajesSemanales || 2);
+    });
+    const combustibleMensual = combustibleSemanal * 4.33;
+    
+    const totalGastos = totalAlquileres + combustibleMensual;
+    const cajaNeta = totalRecaudado - totalGastos;
+    
+    // Pintar tarjetas
+    document.getElementById("tablero-monto-esperado").innerText = formatCurrency(totalEsperado);
+    document.getElementById("tablero-sub-esperado").innerText = `${liquidacionesMes.length} cuotas facturadas`;
+    
+    document.getElementById("tablero-monto-recaudado").innerText = formatCurrency(totalRecaudado);
+    document.getElementById("tablero-sub-recaudado").innerText = `${cuotasPagasCount} cobradas | ${liquidacionesMes.length - cuotasPagasCount} pendientes`;
+    
+    document.getElementById("tablero-monto-gastos").innerText = formatCurrency(totalGastos);
+    document.getElementById("tablero-sub-gastos").innerText = `Sala: ${formatCurrency(totalAlquileres)} | Comb: ${formatCurrency(combustibleMensual)}`;
+    
+    const cajaNetaEl = document.getElementById("tablero-caja-neta");
+    cajaNetaEl.innerText = (cajaNeta >= 0 ? "" : "-") + formatCurrency(Math.abs(cajaNeta));
+    if (cajaNeta >= 0) {
+        cajaNetaEl.style.color = "var(--success-light)";
+    } else {
+        cajaNetaEl.style.color = "var(--danger-light)";
+    }
+    
+    // 2. CÁLCULOS OPERATIVOS DE PRESENTISMO
+    const asistenciasMes = db.asistencias.filter(as => as.fecha.startsWith(selectedMonth));
+    document.getElementById("tablero-total-asistencias").innerText = asistenciasMes.length;
+    
+    // Calcular slots esperados: suma de frecuencias * 4 clases estimadas/mes por alumno
+    let slotsEsperadosTotal = 0;
+    db.alumnos.forEach(al => {
+        slotsEsperadosTotal += (al.frecuencia || 2) * 4;
+    });
+    
+    const tasaPresentismo = slotsEsperadosTotal > 0
+        ? Math.min(100, Math.round((asistenciasMes.length / slotsEsperadosTotal) * 100))
+        : 0;
+    document.getElementById("tablero-tasa-presentismo").innerText = `${tasaPresentismo}%`;
+    
+    // Alumnos inactivos: no tienen asistencias en este mes
+    let inactivosCount = 0;
+    db.alumnos.forEach(al => {
+        const asistioEnMes = db.asistencias.some(as => as.alumnoId === al.id && as.fecha.startsWith(selectedMonth));
+        if (!asistioEnMes) inactivosCount++;
+    });
+    document.getElementById("tablero-alumnos-inactivos").innerText = inactivosCount;
+    
+    // 3. RENDERIZACIÓN DE GRÁFICOS (CHART.JS)
+    renderCharts(liquidacionesMes, totalAlquileres, combustibleMensual, totalRecaudado);
+}
+
+function renderCharts(liquidacionesMes, totalAlquileres, combustibleMensual, totalRecaudado) {
+    // Preparar datos de sedes
+    const sedesData = db.sedes.map(sede => {
+        // Alumnos matriculados en esta sede
+        const alumnosCount = db.alumnos.filter(al => al.sedeId === sede.id).length;
+        // Facturación en esta sede
+        let facturacionSede = 0;
+        liquidacionesMes.forEach(liq => {
+            const al = db.alumnos.find(a => a.id === liq.alumnoId);
+            if (al && al.sedeId === sede.id) {
+                facturacionSede += liq.montoNeto;
+            }
+        });
+        return {
+            nombre: sede.nombre,
+            alumnos: alumnosCount,
+            ingresos: facturacionSede
+        };
+    });
+    
+    const labelsSedes = sedesData.map(s => s.nombre);
+    const dataAlumnos = sedesData.map(s => s.alumnos);
+    const dataIngresos = sedesData.map(s => s.ingresos);
+    
+    // Destruir gráficos previos si existen
+    if (chartOcupacion) chartOcupacion.destroy();
+    if (chartCaja) chartCaja.destroy();
+    
+    // --- GRÁFICO 1: OCUPACIÓN Y FACTURACIÓN POR SEDE ---
+    const ctxOcupacion = document.getElementById('chart-ocupacion');
+    if (ctxOcupacion) {
+        chartOcupacion = new Chart(ctxOcupacion, {
+            type: 'bar',
+            data: {
+                labels: labelsSedes,
+                datasets: [
+                    {
+                        label: 'Alumnos Matriculados',
+                        data: dataAlumnos,
+                        backgroundColor: 'rgba(255, 107, 0, 0.25)',
+                        borderColor: '#ff6b00',
+                        borderWidth: 1.5,
+                        borderRadius: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Ingresos Esperados ($)',
+                        data: dataIngresos,
+                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                        borderColor: '#fafafa',
+                        borderWidth: 1.5,
+                        borderRadius: 1,
+                        type: 'line',
+                        tension: 0.1,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#aaaaaa',
+                            font: { family: 'Montserrat', size: 10, weight: '600' }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,107,0,0.05)' },
+                        ticks: { color: '#aaaaaa', font: { family: 'Montserrat', size: 10 } }
+                    },
+                    y: {
+                        position: 'left',
+                        grid: { color: 'rgba(255,107,0,0.05)' },
+                        ticks: { color: '#aaaaaa', font: { family: 'Montserrat', size: 10 } },
+                        title: { display: true, text: 'Alumnos', color: '#aaaaaa' }
+                    },
+                    y1: {
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        ticks: { color: '#aaaaaa', font: { family: 'Montserrat', size: 10 } },
+                        title: { display: true, text: 'Pesos ($)', color: '#aaaaaa' }
+                    }
+                }
+            }
+        });
+    }
+    
+    // --- GRÁFICO 2: CAJA NETA (ESTRUCTURA DE GASTOS) ---
+    const ctxCaja = document.getElementById('chart-caja-distribucion');
+    if (ctxCaja) {
+        const ingresosLibres = Math.max(0, totalRecaudado - (totalAlquileres + combustibleMensual));
+        
+        chartCaja = new Chart(ctxCaja, {
+            type: 'doughnut',
+            data: {
+                labels: ['Caja Neta Libres', 'Alquiler Salones', 'Costo Combustible'],
+                datasets: [{
+                    data: [ingresosLibres, totalAlquileres, combustibleMensual],
+                    backgroundColor: [
+                        '#ff6b00',   // Orange
+                        '#2e2e2e',   // Medium Gray
+                        '#ffaa66'    // Soft Orange
+                    ],
+                    borderColor: '#1a1a1a',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#aaaaaa',
+                            font: { family: 'Montserrat', size: 9, weight: '600' },
+                            padding: 12
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+}
+
+// --- INICIALIZACIÓN ---
+document.addEventListener("DOMContentLoaded", () => {
+    loadDB();
+    initNavigation();
+    renderSedes();
+    renderDescuentos();
+    initLogisticaInputs();
+    
+    // Fase 2: Alumnos
+    initAlumnosListeners();
+    populateAlumnoDropdowns();
+    renderAlumnos();
+    
+    // Fase 3: Presentismo
+    initPresentismo();
+    populatePresentismoSedeDropdown();
+    renderPresentismo();
+
+    // Fase 4: Liquidación y Tablero
+    initLiquidaciones();
+    renderLiquidaciones();
+    renderTablero();
+});

@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baila con Wally - CRM Operativo</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSS Estilos -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-text">
+                    <h1 class="brand-logo-text">BAILA CON <span>WALLY</span></h1>
+                    <span class="brand-logo-sub">Sistema de Operaciones</span>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-tab="cimientos">
+                    <span class="icon"><i class="fa-solid fa-sliders"></i></span>
+                    <span>Cimientos</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="alumnos">
+                    <span class="icon"><i class="fa-solid fa-users"></i></span>
+                    <span>Alumnos</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="presentismo">
+                    <span class="icon"><i class="fa-solid fa-calendar-check"></i></span>
+                    <span>Presentismo</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="liquidacion">
+                    <span class="icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+                    <span>Liquidación</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="tablero">
+                    <span class="icon"><i class="fa-solid fa-chart-simple"></i></span>
+                    <span>Tablero</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <span class="status-indicator online"></span>
+                <span>Fase 2 Activa</span>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="app-header">
+                <div class="header-title">
+                    <h2 id="view-title">Configuración de los Cimientos</h2>
+                    <p id="view-subtitle" class="text-muted">Gestiona sedes, precios, descuentos y costos logísticos iniciales.</p>
+                </div>
+                <div class="header-actions">
+                    <button id="btn-export" class="btn btn-secondary">
+                        <i class="fa-solid fa-download" style="margin-right: 6px;"></i> Exportar Datos
+                    </button>
+                    <button id="btn-import" class="btn btn-secondary">
+                        <i class="fa-solid fa-upload" style="margin-right: 6px;"></i> Importar Datos
+                    </button>
+                    <input type="file" id="file-import-input" style="display: none;" accept=".json">
+                    <button id="btn-reset" class="btn btn-danger-outline" title="Reiniciar datos a valores iniciales">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Container for Toast Notifications -->
+            <div id="toast-container" class="toast-container"></div>
+
+            <!-- Content Views -->
+            <div class="view-viewport">
+                <!-- VIEW 1: CIMIENTOS (Fase 1) -->
+                <section id="view-cimientos" class="view-section active">
+                    <div class="grid-layout">
+                        <!-- Card 1: Sedes y Precios -->
+                        <div class="card card-span-2">
+                            <div class="card-header">
+                                <div class="card-header-title">
+                                    <h3>Sedes y Matriz de Precios</h3>
+                                    <p class="text-muted">Configura las sedes operativas de danza y sus precios mensuales según la frecuencia semanal.</p>
+                                </div>
+                                <button id="btn-add-sede" class="btn btn-primary">
+                                    <span>+</span> Nueva Sede
+                                </button>
+                            </div>
+                            <div class="table-container">
+                                <table id="table-sedes">
+                                    <thead>
+                                        <tr>
+                                            <th>Sede</th>
+                                            <th>1 vez/sem</th>
+                                            <th>2 veces/sem</th>
+                                            <th>3 veces/sem</th>
+                                            <th>Alquiler Mensual</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-sedes">
+                                        <!-- Generado por JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Etiquetas de Descuento -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-header-title">
+                                    <h3>Etiquetas de Descuento</h3>
+                                    <p class="text-muted">Gatillos automáticos aplicados en facturación.</p>
+                                </div>
+                                <button id="btn-add-descuento" class="btn btn-primary btn-sm">
+                                    <span>+</span> Agregar
+                                </button>
+                            </div>
+                            <div class="list-container" id="list-descuentos">
+                                <!-- Generado por JS -->
+                            </div>
+                        </div>
+
+                        <!-- Card 3: Configuración Logística y Combustible -->
+                        <div class="card card-span-2">
+                            <div class="card-header">
+                                <div class="card-header-title">
+                                    <h3>Configuración Logística</h3>
+                                    <p class="text-muted">Variables de consumo y distancias para el calculador de costos de transporte.</p>
+                                </div>
+                            </div>
+                            <div class="logistics-settings-grid">
+                                <div class="form-group">
+                                    <label for="input-combustible-precio">Precio de Combustible (por litro)</label>
+                                    <div class="input-prefix-container">
+                                        <span class="input-prefix">$</span>
+                                        <input type="number" id="input-combustible-precio" step="0.01" min="0" placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="input-combustible-rendimiento">Rendimiento del Vehículo (km/L)</label>
+                                    <div class="input-prefix-container">
+                                        <input type="number" id="input-combustible-rendimiento" step="0.1" min="0.1" placeholder="0.0">
+                                        <span class="input-suffix">km/L</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="input-logistica-base">Ubicación de Base</label>
+                                    <input type="text" id="input-logistica-base" placeholder="Ej: San Isidro / Oficina Central">
+                                </div>
+                            </div>
+
+                            <div class="table-container mt-4">
+                                <h4>Cálculo de Costo por Sede (Ida y Vuelta)</h4>
+                                <table id="table-logistica-costos" class="mt-2">
+                                    <thead>
+                                        <tr>
+                                            <th>Sede</th>
+                                            <th>Distancia (Ida)</th>
+                                            <th>Fórmula / Consumo</th>
+                                            <th>Costo Estimado (Por Viaje)</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-logistica">
+                                        <!-- Generado por JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Card 4: Monitoreo Logístico (Comparador Teórico vs Real) -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-header-title">
+                                    <h3>Monitoreo Logístico Semanal</h3>
+                                    <p class="text-muted">Compara los viajes teóricos configurados frente a tu gasto real en combustible.</p>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="input-logistica-gasto-real">Gasto Real Semanal de Combustible ($)</label>
+                                <div class="input-prefix-container">
+                                    <span class="input-prefix">$</span>
+                                    <input type="number" id="input-logistica-gasto-real" min="0" placeholder="0">
+                                </div>
+                            </div>
+                            <div style="margin-top: 24px;" class="text-sm">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px dashed var(--border-color);">
+                                    <span class="text-muted">Costo Teórico (Frecuencias):</span>
+                                    <span style="font-weight: 600;" id="logistica-costo-teorico">$0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px dashed var(--border-color);">
+                                    <span class="text-muted">Gasto Real Ingresado:</span>
+                                    <span style="font-weight: 600;" id="logistica-costo-real">$0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding-top: 6px;">
+                                    <span style="font-weight: 700;">Desviación / Diferencia:</span>
+                                    <span style="font-weight: 700;" id="logistica-desviacion">$0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 2: ALUMNOS (Fase 2 - Carga de Datos y "Limpieza") -->
+                <section id="view-alumnos" class="view-section">
+                    <!-- Estadísticas Rápidas -->
+                    <div class="logistics-settings-grid mb-4" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+                        <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 16px;">
+                            <div style="font-size: 24px; color: var(--accent-primary); background: rgba(255, 107, 0, 0.1); width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: var(--border-radius-md);"><i class="fa-solid fa-users"></i></div>
+                            <div>
+                                <h4 style="font-size: 20px; font-weight: 700;" id="stat-total-alumnos">0</h4>
+                                <p class="text-muted text-sm" style="margin: 0;">Total Alumnos</p>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 16px;">
+                            <div style="font-size: 24px; color: var(--success); background: rgba(16, 185, 129, 0.1); width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: var(--border-radius-md);"><i class="fa-solid fa-ticket"></i></div>
+                            <div>
+                                <h4 style="font-size: 20px; font-weight: 700;" id="stat-total-clases">0</h4>
+                                <p class="text-muted text-sm" style="margin: 0;">Pases Disponibles Totales</p>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 16px;">
+                            <div style="font-size: 24px; color: var(--warning); background: rgba(245, 158, 11, 0.1); width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: var(--border-radius-md);"><i class="fa-solid fa-tags"></i></div>
+                            <div>
+                                <h4 style="font-size: 20px; font-weight: 700;" id="stat-alumnos-descuento">0</h4>
+                                <p class="text-muted text-sm" style="margin: 0;">Alumnos con Descuento</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header" style="flex-wrap: wrap; gap: 16px; align-items: center;">
+                            <div class="card-header-title">
+                                <h3>Base de Alumnos</h3>
+                                <p class="text-muted">Busca, filtra y gestiona a los alumnos matriculados y sus paquetes de clases activos.</p>
+                            </div>
+                            <div class="header-actions" style="display: flex; gap: 10px; width: auto;">
+                                <button id="btn-load-demo-alumnos" class="btn btn-secondary btn-sm" title="Cargar un conjunto de alumnos de prueba">
+                                    <i class="fa-solid fa-wand-magic-sparkles" style="margin-right: 6px;"></i> Cargar Demo
+                                </button>
+                                <button id="btn-add-alumno" class="btn btn-primary btn-sm">
+                                    <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> Registrar Alumno
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filtros -->
+                        <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+                            <div style="flex-grow: 1; min-width: 200px; position: relative;">
+                                <input type="text" id="input-search-alumnos" placeholder="Buscar por nombre o teléfono...">
+                            </div>
+                            <div style="width: 200px;">
+                                <select id="select-filter-sede">
+                                    <option value="">Todas las sedes</option>
+                                    <!-- Dinámico -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table id="table-alumnos">
+                                <thead>
+                                    <tr>
+                                        <th>Alumno</th>
+                                        <th>WhatsApp</th>
+                                        <th>Sede</th>
+                                        <th>Frecuencia</th>
+                                        <th>Descuento</th>
+                                        <th>Pases Restantes</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-alumnos">
+                                    <!-- Generado por JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 3: PRESENTISMO (Fase 3 - Automatización y Testeo en Vivo) -->
+                <section id="view-presentismo" class="view-section">
+                    <div class="card mb-4">
+                        <div class="card-header" style="flex-wrap: wrap; gap: 16px; align-items: center;">
+                            <div class="card-header-title">
+                                <h3>Pasar Asistencia</h3>
+                                <p class="text-muted">Selecciona la sede y la fecha de hoy para registrar las asistencias. Los pases se descontarán automáticamente.</p>
+                            </div>
+                        </div>
+                        <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 0;">
+                            <div class="form-group">
+                                <label for="select-presentismo-sede">Selecciona la Sede de la Clase</label>
+                                <select id="select-presentismo-sede">
+                                    <option value="" disabled selected>Selecciona una sede</option>
+                                    <!-- Dinámico -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="input-presentismo-fecha">Fecha de Clase</label>
+                                <input type="date" id="input-presentismo-fecha">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-layout">
+                        <!-- Columna izquierda: Pendientes / No Asistieron -->
+                        <div class="card card-span-2">
+                            <div class="card-header">
+                                <div class="card-header-title">
+                                    <h3>Lista de Clase (Pendientes)</h3>
+                                    <p class="text-muted" id="presentismo-pendientes-count">Selecciona una sede para listar a los alumnos.</p>
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Alumno</th>
+                                            <th>Pases Activos</th>
+                                            <th>Acciones de Asistencia</th>
+                                            <th>Alerta Vencimiento</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-presentismo-pendientes">
+                                        <tr><td colspan="4" class="text-center text-muted">Selecciona una sede arriba para comenzar a tomar asistencia.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Columna derecha: Registrados hoy -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-header-title">
+                                    <h3>Asistieron Hoy</h3>
+                                    <p class="text-muted" id="presentismo-asistieron-count">0 alumnos registrados hoy.</p>
+                                </div>
+                            </div>
+                            <div class="list-container" id="list-presentismo-asistieron" style="gap: 8px;">
+                                <p class="text-muted text-center text-sm mt-3">Nadie ha sido registrado en esta clase todavía.</p>
+                            </div>
+                        </div>
+
+                        <!-- Panel de Alerta de Alumnos Ausentes -->
+                        <div class="card card-span-3" style="grid-column: span 3; border-color: rgba(239, 68, 68, 0.2);">
+                            <div class="card-header">
+                                <div class="card-header-title">
+                                    <h3 style="color: var(--danger-light); display: inline-flex; align-items: center; gap: 8px;">
+                                        <i class="fa-solid fa-triangle-exclamation"></i> Alerta de Ausencia y Seguimiento
+                                    </h3>
+                                    <p class="text-muted">Alumnos ausentes en la fecha de hoy. Envíales un WhatsApp en un clic para mantener el contacto y la retención.</p>
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Alumno</th>
+                                            <th>Última Asistencia</th>
+                                            <th>WhatsApp de Seguimiento</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-presentismo-ausentes">
+                                        <!-- Dinámico -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 4: LIQUIDACIÓN (Fase 4 - Cobranza Automatizada) -->
+                <section id="view-liquidacion" class="view-section">
+                    <div class="card mb-4">
+                        <div class="card-header" style="flex-wrap: wrap; gap: 16px; align-items: center;">
+                            <div class="card-header-title">
+                                <h3>Liquidación Mensual de Cuotas</h3>
+                                <p class="text-muted">Genera y administra las órdenes de cobro para el inicio del ciclo de danza basado en sedes, frecuencias y descuentos.</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
+                            <div class="form-group" style="margin-bottom: 0; width: 220px;">
+                                <label for="select-liquidacion-mes">Ciclo de Facturación</label>
+                                <select id="select-liquidacion-mes">
+                                    <!-- Dinámico -->
+                                </select>
+                            </div>
+                            <button id="btn-generar-liquidacion" class="btn btn-primary" style="height: 40px;">
+                                <i class="fa-solid fa-calculator" style="margin-right: 6px;"></i> Generar Ciclo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header" style="flex-wrap: wrap; gap: 16px; align-items: center;">
+                            <div class="card-header-title">
+                                <h3>Órdenes de Pago</h3>
+                                <p class="text-muted" id="liquidaciones-count">No hay órdenes de pago en este ciclo.</p>
+                            </div>
+                            <!-- Filtros y Buscador de órdenes -->
+                            <div style="display: flex; gap: 12px; width: auto; flex-wrap: wrap;">
+                                <input type="text" id="input-search-liquidaciones" placeholder="Buscar alumno..." style="width: 180px; padding: 6px 12px; font-size:12px; height:32px;">
+                                <select id="select-filter-liquidacion-estado" style="width: 140px; padding: 6px 12px; font-size:12px; height:32px;">
+                                    <option value="">Todos los estados</option>
+                                    <option value="Pendiente">Pendientes</option>
+                                    <option value="Pagado">Pagados</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Alumno</th>
+                                        <th>Sede y Frecuencia</th>
+                                        <th>Detalle Cálculo</th>
+                                        <th>Monto Neto</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                        <th>Notificar WhatsApp</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-liquidaciones">
+                                    <!-- Dinámico -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 5: TABLERO (Fase 4 - Tablero Operativo) -->
+                <section id="view-tablero" class="view-section">
+                    <!-- Resumen de Tarjetas Financieras -->
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                        <div class="card" style="padding: 16px; border-left: 4px solid var(--accent-primary);">
+                            <p class="text-muted text-sm" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Esperado (Ciclo)</p>
+                            <h4 style="font-size: 24px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px;" id="tablero-monto-esperado">$0</h4>
+                            <span class="text-muted text-sm" id="tablero-sub-esperado">0 cuotas generadas</span>
+                        </div>
+                        <div class="card" style="padding: 16px; border-left: 4px solid var(--success);">
+                            <p class="text-muted text-sm" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Recaudado Real</p>
+                            <h4 style="font-size: 24px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px; color: var(--success-light);" id="tablero-monto-recaudado">$0</h4>
+                            <span class="text-muted text-sm" id="tablero-sub-recaudado">0 cuotas pagas</span>
+                        </div>
+                        <div class="card" style="padding: 16px; border-left: 4px solid var(--danger-light);">
+                            <p class="text-muted text-sm" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Gastos Operativos</p>
+                            <h4 style="font-size: 24px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px; color: var(--danger-light);" id="tablero-monto-gastos">$0</h4>
+                            <span class="text-muted text-sm" id="tablero-sub-gastos">Alquileres + Combustible</span>
+                        </div>
+                        <div class="card" style="padding: 16px; border-left: 4px solid var(--accent-light);">
+                            <p class="text-muted text-sm" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Caja Neta Estimada</p>
+                            <h4 style="font-size: 24px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px;" id="tablero-caja-neta">$0</h4>
+                            <span class="text-muted text-sm" id="tablero-sub-neto">Recaudado - Gastos</span>
+                        </div>
+                    </div>
+
+                    <!-- Gráficos del Tablero -->
+                    <div class="grid-layout" style="grid-template-columns: 3fr 2fr; gap: 24px;">
+                        <!-- Ocupación y Facturación -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-header-title">
+                                    <h3>Ocupación e Ingresos por Sede</h3>
+                                    <p class="text-muted">Distribución de alumnos matriculados y facturación por sede en el ciclo activo.</p>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 260px; width: 100%;">
+                                <canvas id="chart-ocupacion"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Distribución de Egresos vs Ingresos -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-header-title">
+                                    <h3>Estructura Financiera</h3>
+                                    <p class="text-muted">Proporción de ingresos retenidos frente a alquileres y combustible.</p>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 260px; width: 100%; display: flex; justify-content: center; align-items: center;">
+                                <canvas id="chart-caja-distribucion"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas Operativas de Asistencia -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <div class="card-header-title">
+                                <h3>Métricas de Retención y Presentismo</h3>
+                                <p class="text-muted">Seguimiento de asistencia general e inasistencias detectadas en el mes.</p>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; text-align: center;">
+                            <div style="padding: 16px;">
+                                <span class="text-muted text-sm" style="text-transform:uppercase; font-weight:700;">Asistencias Registradas</span>
+                                <h5 style="font-size: 32px; font-weight: 800; color: var(--accent-primary); font-family: var(--font-title); margin-top: 8px;" id="tablero-total-asistencias">0</h5>
+                                <p class="text-muted text-sm">Clases dictadas/tomadas este mes</p>
+                            </div>
+                            <div style="padding: 16px; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color);">
+                                <span class="text-muted text-sm" style="text-transform:uppercase; font-weight:700;">Tasa de Presentismo</span>
+                                <h5 style="font-size: 32px; font-weight: 800; color: var(--success); font-family: var(--font-title); margin-top: 8px;" id="tablero-tasa-presentismo">0%</h5>
+                                <p class="text-muted text-sm">Porcentaje de asistencia en clases programadas</p>
+                            </div>
+                            <div style="padding: 16px;">
+                                <span class="text-muted text-sm" style="text-transform:uppercase; font-weight:700;">Alumnos Inactivos (Ausencias)</span>
+                                <h5 style="font-size: 32px; font-weight: 800; color: var(--danger-light); font-family: var(--font-title); margin-top: 8px;" id="tablero-alumnos-inactivos">0</h5>
+                                <p class="text-muted text-sm">Alumnos con asistencia nula en el ciclo</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: AGREGAR / EDITAR SEDE -->
+    <div id="modal-sede" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-sede-title">Nueva Sede</h3>
+                <span class="close-modal" id="close-modal-sede">&times;</span>
+            </div>
+            <form id="form-sede">
+                <input type="hidden" id="form-sede-id">
+                <div class="form-group">
+                    <label for="form-input-sede-nombre">Nombre de la Sede</label>
+                    <input type="text" id="form-input-sede-nombre" required placeholder="Ej: Glorietas">
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="form-input-sede-precio1">Precio 1 vez por semana</label>
+                        <div class="input-prefix-container">
+                            <span class="input-prefix">$</span>
+                            <input type="number" id="form-input-sede-precio1" required min="0" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-input-sede-precio2">Precio 2 veces por semana</label>
+                        <div class="input-prefix-container">
+                            <span class="input-prefix">$</span>
+                            <input type="number" id="form-input-sede-precio2" required min="0" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-input-sede-precio3">Precio 3 veces por semana</label>
+                        <div class="input-prefix-container">
+                            <span class="input-prefix">$</span>
+                            <input type="number" id="form-input-sede-precio3" required min="0" placeholder="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="form-group">
+                        <label for="form-input-sede-alquiler">Alquiler Sala (Mes)</label>
+                        <div class="input-prefix-container">
+                            <span class="input-prefix">$</span>
+                            <input type="number" id="form-input-sede-alquiler" required min="0" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-input-sede-distancia">Distancia (km ida)</label>
+                        <div class="input-prefix-container">
+                            <input type="number" id="form-input-sede-distancia" required min="0" step="0.1" placeholder="0.0">
+                            <span class="input-suffix">km</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-input-sede-viajes">Viajes Semanales</label>
+                        <input type="number" id="form-input-sede-viajes" required min="0" step="1" placeholder="Ej: 2">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-sede">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Sede</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: AGREGAR / EDITAR DESCUENTO -->
+    <div id="modal-descuento" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-descuento-title">Nueva Etiqueta de Descuento</h3>
+                <span class="close-modal" id="close-modal-descuento">&times;</span>
+            </div>
+            <form id="form-descuento">
+                <input type="hidden" id="form-descuento-id">
+                <div class="form-group">
+                    <label for="form-input-descuento-nombre">Nombre de la Etiqueta</label>
+                    <input type="text" id="form-input-descuento-nombre" required placeholder="Ej: Descuento Familiar">
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="form-input-descuento-tipo">Tipo de Descuento</label>
+                        <select id="form-input-descuento-tipo" required>
+                            <option value="porcentaje">Porcentaje (%)</option>
+                            <option value="fijo">Monto Fijo ($)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-input-descuento-valor">Valor del Descuento</label>
+                        <input type="number" id="form-input-descuento-valor" required min="0" step="0.01" placeholder="Ej: 10 o 500">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-descuento">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Etiqueta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: AGREGAR / EDITAR ALUMNO -->
+    <div id="modal-alumno" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-alumno-title">Registrar Alumno</h3>
+                <span class="close-modal" id="close-modal-alumno">&times;</span>
+            </div>
+            <form id="form-alumno">
+                <input type="hidden" id="form-alumno-id">
+                <div class="form-group">
+                    <label for="form-input-alumno-nombre">Nombre Completo</label>
+                    <input type="text" id="form-input-alumno-nombre" required placeholder="Ej: Walter Gómez">
+                </div>
+                <div class="form-group">
+                    <label for="form-input-alumno-telefono">Teléfono (WhatsApp)</label>
+                    <input type="text" id="form-input-alumno-telefono" required placeholder="Ej: 5491123456789 (con código de país)">
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="form-input-alumno-sede">Sede</label>
+                        <select id="form-input-alumno-sede" required>
+                            <!-- Dinámico -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-input-alumno-frecuencia">Frecuencia Semanal</label>
+                        <select id="form-input-alumno-frecuencia" required>
+                            <option value="1">1 vez por semana</option>
+                            <option value="2" selected>2 veces por semana</option>
+                            <option value="3">3 veces por semana</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="form-input-alumno-descuento">Descuento Aplicado</label>
+                        <select id="form-input-alumno-descuento">
+                            <option value="">Ninguno</option>
+                            <!-- Dinámico -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-input-alumno-clases">Pases Iniciales del Mes</label>
+                        <input type="number" id="form-input-alumno-clases" required min="0" placeholder="Ej: 4 u 8">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-alumno">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Alumno</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script de Lógica -->
+    <script src="app.js"></script>
+</body>
+</html>
