@@ -61,7 +61,8 @@ const INITIAL_DATA = {
 // --- INITIALIZE SUPABASE CLIENT ---
 const SUPABASE_URL = "https://ykbtnebrxdajyulbderj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_jkhz6TgXqBkBGYnyOW5I_A_UQeiRZ06";
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const supabaseLib = window.supabase || globalThis.supabase;
+const supabase = supabaseLib ? supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 let currentUser = null;
 let isSyncing = false;
@@ -1565,6 +1566,10 @@ function renderCharts(liquidacionesMes, totalAlquileres, combustibleMensual, tot
 function initAuth() {
     if (!supabase) {
         console.error("Supabase CDN not loaded.");
+        const desc = document.querySelector(".auth-description");
+        if (desc) {
+            desc.innerHTML = '<span style="color: #ff3b30; font-weight: bold;">Error: No se pudo conectar con Supabase.</span><br>Por favor verifica tu conexión a internet o desactiva bloqueadores de anuncios que puedan restringir el script.';
+        }
         return;
     }
     
@@ -1628,8 +1633,9 @@ function initAuth() {
             document.getElementById("auth-overlay").style.display = "none";
             document.getElementById("btn-logout").style.display = "block";
             const dot = document.getElementById("auth-status-dot");
-            dot.style.backgroundColor = "var(--success-color)";
-            document.getElementById("auth-status-text").innerText = currentUser.email.split("@")[0];
+            if (dot) dot.style.backgroundColor = "var(--success-color)";
+            const text = document.getElementById("auth-status-text");
+            if (text) text.innerText = currentUser.email.split("@")[0];
             
             // Cargar datos de la nube
             await pullFromCloud();
@@ -1638,17 +1644,16 @@ function initAuth() {
             document.getElementById("auth-overlay").style.display = "flex";
             document.getElementById("btn-logout").style.display = "none";
             const dot = document.getElementById("auth-status-dot");
-            dot.style.backgroundColor = "var(--danger-light)";
-            document.getElementById("auth-status-text").innerText = "Desconectado";
+            if (dot) dot.style.backgroundColor = "var(--danger-light)";
+            const text = document.getElementById("auth-status-text");
+            if (text) text.innerText = "Desconectado";
         }
     });
 }
 
-// --- INICIALIZACIÓN ---
-document.addEventListener("DOMContentLoaded", () => {
-    // Primero inicializar autenticación
+// --- INITIALIZE APPLICATION ---
+function initializeApp() {
     initAuth();
-    
     initNavigation();
     renderSedes();
     renderDescuentos();
@@ -1668,4 +1673,11 @@ document.addEventListener("DOMContentLoaded", () => {
     initLiquidaciones();
     renderLiquidaciones();
     renderTablero();
-});
+}
+
+// --- BOOTSTRAP APP ---
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeApp);
+} else {
+    initializeApp();
+}
