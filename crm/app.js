@@ -58,10 +58,18 @@ const INITIAL_DATA = {
     liquidaciones: []
 };
 
+// --- INITIALIZE SUPABASE CLIENT ---
+const SUPABASE_URL = "https://ykbtnebrxdajyulbderj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_jkhz6TgXqBkBGYnyOW5I_A_UQeiRZ06";
+const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+let currentUser = null;
+let isSyncing = false;
+
 // --- ESTADO GLOBAL ---
 let db = { ...INITIAL_DATA };
 
-// --- CARGAR / GUARDAR LOCALSTORAGE ---
+// --- CARGAR / GUARDAR LOCALSTORAGE Y NUBE ---
 function loadDB() {
     const rawData = localStorage.getItem("baila_con_wally_crm_data");
     if (rawData) {
@@ -86,6 +94,69 @@ function loadDB() {
 
 function saveDB() {
     localStorage.setItem("baila_con_wally_crm_data", JSON.stringify(db));
+    pushToCloud();
+}
+
+async function pullFromCloud() {
+    if (!supabase || !currentUser) return;
+    try {
+        const { data, error } = await supabase
+            .from("crm_data")
+            .select("db_json")
+            .eq("user_id", currentUser.id)
+            .maybeSingle();
+            
+        if (error) throw error;
+        
+        if (data && data.db_json) {
+            let cloudDB = typeof data.db_json === "string" ? JSON.parse(data.db_json) : data.db_json;
+            if (cloudDB && (cloudDB.alumnos || cloudDB.sedes)) {
+                db = cloudDB;
+                localStorage.setItem("baila_con_wally_crm_data", JSON.stringify(db));
+                console.log("Datos cargados desde la nube.");
+                renderAll();
+            }
+        } else {
+            console.log("No hay datos en la nube. Inicializando...");
+            await pushToCloud();
+        }
+    } catch (e) {
+        console.error("Error al descargar desde la nube:", e);
+        showToast("Error al conectar con la nube. Usando base local.", "error");
+    }
+}
+
+async function pushToCloud() {
+    if (!supabase || !currentUser || isSyncing) return;
+    isSyncing = true;
+    try {
+        const { error } = await supabase
+            .from("crm_data")
+            .upsert({
+                user_id: currentUser.id,
+                db_json: db,
+                updated_at: new Date().toISOString()
+            }, { onConflict: "user_id" });
+            
+        if (error) throw error;
+        console.log("Datos sincronizados en la nube.");
+    } catch (e) {
+        console.error("Error al subir cambios a la nube:", e);
+    } finally {
+        isSyncing = false;
+    }
+}
+
+function renderAll() {
+    renderSedes();
+    renderDescuentos();
+    initLogisticaInputs();
+    populateAlumnoDropdowns();
+    renderAlumnos();
+    populatePresentismoSedeDropdown();
+    renderPresentismo();
+    renderLiquidaciones();
+    renderTablero();
 }
 
 // --- UTILIDADES: NOTIFICACIONES (TOAST) ---
@@ -1490,10 +1561,94 @@ function renderCharts(liquidacionesMes, totalAlquileres, combustibleMensual, tot
         });
     }
 }
+// --- FUNCIONES DE AUTENTICACIÓN ---
+function initAuth() {
+    if (!supabase) {
+        console.error("Supabase CDN not loaded.");
+        return;
+    }
+    
+    // Iniciar con Google
+    document.getElementById("btn-login-google").addEventListener("click", async () => {
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin + window.location.pathname
+                }
+            });
+            if (error) throw error;
+        } catch (e) {
+            console.error("Error al iniciar sesión con Google:", e);
+            showToast("Error de conexión con Google", "danger");
+        }
+    });
+    
+    // Iniciar con Email / Password
+    document.getElementById("auth-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = document.getElementById("auth-email").value.trim();
+        const password = document.getElementById("auth-password").value;
+        const btnSubmit = document.getElementById("btn-login-submit");
+        btnSubmit.disabled = true;
+        btnSubmit.innerText = "Ingresando...";
+        
+        try {
+            const { error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+            if (error) throw error;
+            showToast("Sesión iniciada correctamente", "success");
+        } catch (err) {
+            console.error("Error de login por email:", err);
+            showToast("Credenciales inválidas o no configuradas", "danger");
+        } finally {
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = "Ingresar";
+        }
+    });
+    
+    // Cerrar sesión
+    document.getElementById("btn-logout").addEventListener("click", async () => {
+        try {
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+            showToast("Sesión cerrada", "success");
+        } catch (e) {
+            console.error("Error al cerrar sesión:", e);
+        }
+    });
+
+    // Escuchar estado de autenticación
+    supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log("Auth event:", event, session);
+        if (session) {
+            currentUser = session.user;
+            document.getElementById("auth-overlay").style.display = "none";
+            document.getElementById("btn-logout").style.display = "block";
+            const dot = document.getElementById("auth-status-dot");
+            dot.style.backgroundColor = "var(--success-color)";
+            document.getElementById("auth-status-text").innerText = currentUser.email.split("@")[0];
+            
+            // Cargar datos de la nube
+            await pullFromCloud();
+        } else {
+            currentUser = null;
+            document.getElementById("auth-overlay").style.display = "flex";
+            document.getElementById("btn-logout").style.display = "none";
+            const dot = document.getElementById("auth-status-dot");
+            dot.style.backgroundColor = "var(--danger-light)";
+            document.getElementById("auth-status-text").innerText = "Desconectado";
+        }
+    });
+}
 
 // --- INICIALIZACIÓN ---
 document.addEventListener("DOMContentLoaded", () => {
-    loadDB();
+    // Primero inicializar autenticación
+    initAuth();
+    
     initNavigation();
     renderSedes();
     renderDescuentos();

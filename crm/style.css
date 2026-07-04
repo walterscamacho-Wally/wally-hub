@@ -802,3 +802,51 @@ select:focus {
         grid-template-columns: 1fr;
     }
 }
+
+/* --- SCREEN DE BLOQUEO / INICIO DE SESIÓN --- */
+.auth-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(10, 10, 10, 0.75);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.auth-card {
+    background: #111111;
+    border: 1px solid rgba(255, 107, 0, 0.15);
+    border-radius: 8px;
+    width: 100%;
+    max-width: 400px;
+    padding: 40px 30px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 50px rgba(255, 107, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 107, 0, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.auth-logo, .auth-body {
+    position: relative;
+    z-index: 1;
+}
+
