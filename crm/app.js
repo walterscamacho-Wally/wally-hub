@@ -1,7 +1,8 @@
 /* --- LÓGICA DE CONTROL DEL CRM "BAILA CON WALLY" --- */
 
 // --- DEBUG LOG ON SCREEN ---
-document.addEventListener("DOMContentLoaded", () => {
+function createDebugDiv() {
+    if (document.getElementById("debug-console-log")) return;
     const debugDiv = document.createElement("div");
     debugDiv.style.position = "fixed";
     debugDiv.style.bottom = "10px";
@@ -19,7 +20,13 @@ document.addEventListener("DOMContentLoaded", () => {
     debugDiv.style.border = "1px solid rgba(255,107,0,0.3)";
     debugDiv.id = "debug-console-log";
     document.body.appendChild(debugDiv);
-});
+}
+
+if (document.body) {
+    createDebugDiv();
+} else {
+    document.addEventListener("DOMContentLoaded", createDebugDiv);
+}
 
 function logToScreen(msg, type = "info") {
     const debugDiv = document.getElementById("debug-console-log");
