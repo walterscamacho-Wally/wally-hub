@@ -1,5 +1,57 @@
 /* --- LÓGICA DE CONTROL DEL CRM "BAILA CON WALLY" --- */
 
+// --- DEBUG LOG ON SCREEN ---
+document.addEventListener("DOMContentLoaded", () => {
+    const debugDiv = document.createElement("div");
+    debugDiv.style.position = "fixed";
+    debugDiv.style.bottom = "10px";
+    debugDiv.style.right = "10px";
+    debugDiv.style.width = "320px";
+    debugDiv.style.maxHeight = "180px";
+    debugDiv.style.overflowY = "auto";
+    debugDiv.style.background = "rgba(10,10,10,0.95)";
+    debugDiv.style.color = "#00ff00";
+    debugDiv.style.fontFamily = "monospace";
+    debugDiv.style.fontSize = "10px";
+    debugDiv.style.padding = "10px";
+    debugDiv.style.borderRadius = "8px";
+    debugDiv.style.zIndex = "999999";
+    debugDiv.style.border = "1px solid rgba(255,107,0,0.3)";
+    debugDiv.id = "debug-console-log";
+    document.body.appendChild(debugDiv);
+});
+
+function logToScreen(msg, type = "info") {
+    const debugDiv = document.getElementById("debug-console-log");
+    if (!debugDiv) return;
+    const p = document.createElement("p");
+    p.style.margin = "0 0 5px 0";
+    p.style.color = type === "error" ? "#ff3b30" : (type === "warning" ? "#ffcc00" : "#00ff00");
+    p.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    debugDiv.appendChild(p);
+    debugDiv.scrollTop = debugDiv.scrollHeight;
+}
+
+window.addEventListener("error", function (event) {
+    logToScreen(`ERROR: ${event.message} at ${event.filename}:${event.lineno}`, "error");
+});
+
+window.addEventListener("unhandledrejection", function (event) {
+    logToScreen(`PROMISE REJECTION: ${event.reason}`, "error");
+});
+
+const _log = console.log;
+const _err = console.error;
+console.log = function(...args) {
+    _log.apply(console, args);
+    logToScreen(args.map(x => typeof x === 'object' ? JSON.stringify(x) : String(x)).join(" "), "info");
+};
+console.error = function(...args) {
+    _err.apply(console, args);
+    logToScreen(args.map(x => typeof x === 'object' ? JSON.stringify(x) : String(x)).join(" "), "error");
+};
+
+
 // --- DATOS INICIALES (SEMILLA) ---
 const INITIAL_DATA = {
     settings: {
