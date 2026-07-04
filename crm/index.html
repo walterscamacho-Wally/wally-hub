@@ -456,7 +456,7 @@
                 <!-- VIEW 5: TABLERO (Fase 4 - Tablero Operativo) -->
                 <section id="view-tablero" class="view-section">
                     <!-- Resumen de Tarjetas Financieras -->
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                    <div class="grid-kpi">
                         <div class="card" style="padding: 16px; border-left: 4px solid var(--accent-primary);">
                             <p class="text-muted text-sm" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Esperado (Ciclo)</p>
                             <h4 style="font-size: 24px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px;" id="tablero-monto-esperado">$0</h4>
@@ -480,7 +480,7 @@
                     </div>
 
                     <!-- Gráficos del Tablero -->
-                    <div class="grid-layout" style="grid-template-columns: 3fr 2fr; gap: 24px;">
+                    <div class="grid-tablero-charts">
                         <!-- Ocupación y Facturación -->
                         <div class="card">
                             <div class="card-header">
@@ -557,7 +557,7 @@
                     </div>
 
                     <!-- Resumen General en Cards (KPIs) -->
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                    <div class="grid-kpi">
                         <div class="card" style="padding: 20px; border-left: 4px solid var(--accent-primary);">
                             <p class="text-muted text-xs" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Recaudado Bruto</p>
                             <h4 style="font-size: 26px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px;" id="rep-kpi-ingresos">$0</h4>
@@ -581,7 +581,7 @@
                     </div>
 
                     <!-- Desgloses en dos columnas -->
-                    <div class="grid-layout" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+                    <div class="grid-2-col">
                         <!-- Columna Izquierda: Ingresos por Sede -->
                         <div class="card" style="padding: 20px;">
                             <div class="card-header" style="padding-bottom: 12px; margin-bottom: 16px;">

@@ -946,4 +946,61 @@ input[type="month"]:focus {
     }
 }
 
+/* --- RESPONSIVE GRIDS & SYMMETRY IMPROVEMENTS --- */
+.grid-kpi {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.grid-2-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.grid-tablero-charts {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 24px;
+}
+
+@media (max-width: 1200px) {
+    .grid-layout {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .card-span-2 {
+        grid-column: span 2 !important;
+    }
+    .grid-kpi {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 1024px) {
+    .grid-tablero-charts {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .grid-layout {
+        grid-template-columns: 1fr !important;
+    }
+    .card-span-2 {
+        grid-column: span 1 !important;
+    }
+    .grid-2-col {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .grid-kpi {
+        grid-template-columns: 1fr;
+    }
+}
+
+
 
