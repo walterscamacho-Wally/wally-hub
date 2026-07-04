@@ -159,6 +159,7 @@ function renderAll() {
     renderPresentismo();
     renderLiquidaciones();
     renderTablero();
+    if (typeof renderReporte === "function") renderReporte();
 }
 
 // --- UTILIDADES: NOTIFICACIONES (TOAST) ---
@@ -204,7 +205,8 @@ const VIEW_INFO = {
     alumnos: { title: "Fase 2: Carga de Datos y Limpieza", subtitle: "Importa tu team y define las clases mensuales asignadas." },
     presentismo: { title: "Fase 3: Automatización y Asistencia", subtitle: "Marca las asistencias de tus alumnos y gestiona las alertas de pases." },
     liquidacion: { title: "Fase 4: Cobros y Liquidación Automática", subtitle: "Calcula cobros del mes y visualiza las órdenes de pago." },
-    tablero: { title: "Tablero Operativo de Control", subtitle: "Analiza el rendimiento general, la ocupación de salas y la rentabilidad." }
+    tablero: { title: "Tablero Operativo de Control", subtitle: "Analiza el rendimiento general, la ocupación de salas y la rentabilidad." },
+    reportes: { title: "Reportes Mensuales Operativos", subtitle: "Visualiza desgloses de ingresos, gastos mensuales y copia reportes listos para administración." }
 };
 
 function initNavigation() {
@@ -228,6 +230,13 @@ function initNavigation() {
             if (VIEW_INFO[tabId]) {
                 viewTitle.innerText = VIEW_INFO[tabId].title;
                 viewSubtitle.innerText = VIEW_INFO[tabId].subtitle;
+            }
+            
+            // Refresh views upon activation
+            if (tabId === "tablero") {
+                renderTablero();
+            } else if (tabId === "reportes") {
+                renderReporte();
             }
         });
     });
@@ -1652,6 +1661,226 @@ function initAuth() {
     });
 }
 
+// --- MÓDULO DE REPORTES MENSUALES ---
+const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+function getMonthLabel(yearMonth) {
+    if (!yearMonth) return "";
+    const [year, month] = yearMonth.split("-");
+    const monthIdx = parseInt(month) - 1;
+    return `${MESES[monthIdx]} ${year}`;
+}
+
+function initReportes() {
+    const selectorMes = document.getElementById("reporte-mes-anio");
+    if (!selectorMes) return;
+    
+    // Establecer mes actual por defecto (formato YYYY-MM)
+    const hoy = new Date();
+    const mesActual = hoy.getFullYear() + "-" + String(hoy.getMonth() + 1).padStart(2, "0");
+    selectorMes.value = mesActual;
+    
+    // Listener de cambios
+    selectorMes.addEventListener("change", renderReporte);
+    
+    // Botones de acción
+    document.getElementById("btn-reporte-copiar").addEventListener("click", copyReportToClipboard);
+    document.getElementById("btn-reporte-imprimir").addEventListener("click", () => {
+        window.print();
+    });
+}
+
+function getReportData() {
+    const selectorMes = document.getElementById("reporte-mes-anio");
+    if (!selectorMes) return null;
+    
+    const selectedMonth = selectorMes.value;
+    const mesLabel = getMonthLabel(selectedMonth);
+    
+    const liquidacionesMes = db.liquidaciones.filter(l => l.mes === selectedMonth);
+    
+    // Ingresos
+    let totalEsperado = 0;
+    let totalRecaudado = 0;
+    let cuotasPagasCount = 0;
+    
+    liquidacionesMes.forEach(liq => {
+        totalEsperado += liq.montoNeto;
+        if (liq.estado === "Pagado") {
+            totalRecaudado += liq.montoNeto;
+            cuotasPagasCount++;
+        }
+    });
+    
+    const totalPendiente = totalEsperado - totalRecaudado;
+    
+    // Alquileres de Sedes
+    let totalAlquileres = 0;
+    db.sedes.forEach(s => totalAlquileres += s.alquiler);
+    
+    // Combustible
+    const precioLitro = parseFloat(document.getElementById("input-combustible-precio").value) || 0;
+    const rendimiento = parseFloat(document.getElementById("input-combustible-rendimiento").value) || 1;
+    
+    let combustibleSemanal = 0;
+    db.sedes.forEach(s => {
+        const distIdaVuelta = s.distancia * 2;
+        const consumoViaje = distIdaVuelta / rendimiento;
+        const costoViaje = consumoViaje * precioLitro;
+        combustibleSemanal += costoViaje * (s.viajesSemanales || 2);
+    });
+    
+    const combustibleTeoricoMensual = combustibleSemanal * 4.33;
+    const combustibleRealSemanal = db.settings.logisticaGastoReal || 0;
+    const combustibleRealMensual = combustibleRealSemanal * 4.33;
+    
+    const gastoCombustible = combustibleRealMensual > 0 ? combustibleRealMensual : combustibleTeoricoMensual;
+    const totalGastos = totalAlquileres + gastoCombustible;
+    const cajaNeta = totalRecaudado - totalGastos;
+    
+    // Métricas de Asistencia
+    const asistenciasMes = db.asistencias.filter(as => as.fecha.startsWith(selectedMonth));
+    let slotsEsperadosTotal = 0;
+    db.alumnos.forEach(al => {
+        slotsEsperadosTotal += (al.frecuencia || 2) * 4;
+    });
+    
+    const tasaPresentismo = slotsEsperadosTotal > 0
+        ? Math.min(100, Math.round((asistenciasMes.length / slotsEsperadosTotal) * 100))
+        : 0;
+        
+    // Agrupar Ingresos por Sede
+    const sedesResumen = db.sedes.map(sede => {
+        const alumnosSede = db.alumnos.filter(al => al.sedeId === sede.id);
+        let recaudadoSede = 0;
+        
+        liquidacionesMes.forEach(liq => {
+            const al = alumnosSede.find(a => a.id === liq.alumnoId);
+            if (al && liq.estado === "Pagado") {
+                recaudadoSede += liq.montoNeto;
+            }
+        });
+        
+        return {
+            nombre: sede.nombre,
+            alumnosCount: alumnosSede.length,
+            recaudado: recaudadoSede
+        };
+    });
+    
+    return {
+        mesLabel,
+        totalEsperado,
+        totalRecaudado,
+        totalPendiente,
+        cuotasPagasCount,
+        cuotasTotalCount: liquidacionesMes.length,
+        totalAlquileres,
+        gastoCombustible,
+        totalGastos,
+        cajaNeta,
+        asistenciasMesCount: asistenciasMes.length,
+        alumnosActivosCount: db.alumnos.length,
+        tasaPresentismo,
+        sedesResumen
+    };
+}
+
+function renderReporte() {
+    const r = getReportData();
+    if (!r) return;
+    
+    // Pintar KPIs
+    document.getElementById("rep-kpi-ingresos").innerText = formatCurrency(r.totalRecaudado);
+    document.getElementById("rep-kpi-ingresos-desc").innerText = `${r.cuotasPagasCount} cuotas cobradas (de ${r.cuotasTotalCount} generadas)`;
+    
+    document.getElementById("rep-kpi-egresos").innerText = formatCurrency(r.totalGastos);
+    document.getElementById("rep-kpi-egresos-desc").innerText = `Alquileres: ${formatCurrency(r.totalAlquileres)} | Combustible: ${formatCurrency(r.gastoCombustible)}`;
+    
+    const netoEl = document.getElementById("rep-kpi-neto");
+    netoEl.innerText = (r.cajaNeta >= 0 ? "" : "-") + formatCurrency(Math.abs(r.cajaNeta));
+    netoEl.style.color = r.cajaNeta >= 0 ? "var(--success-light)" : "var(--danger-light)";
+    document.getElementById("rep-kpi-neto-desc").innerText = `Recaudado Real - Gastos Operativos`;
+    
+    document.getElementById("rep-kpi-asistencia").innerText = `${r.tasaPresentismo}%`;
+    document.getElementById("rep-kpi-asistencia-desc").innerText = `Alumnos activos: ${r.alumnosActivosCount} | Clases: ${r.asistenciasMesCount}`;
+    
+    // Renderizar Tabla de Ingresos por Sede
+    const tbodyIngresos = document.getElementById("rep-table-ingresos-body");
+    tbodyIngresos.innerHTML = "";
+    r.sedesResumen.forEach(s => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td style="font-weight: 600; color: var(--text-primary);">${s.nombre}</td>
+            <td style="text-align: right;">${s.alumnosCount} alumnos</td>
+            <td style="text-align: right; font-weight: 700; color: var(--success-light);">${formatCurrency(s.recaudado)}</td>
+        `;
+        tbodyIngresos.appendChild(tr);
+    });
+    
+    // Renderizar Tabla de Egresos
+    const tbodyEgresos = document.getElementById("rep-table-egresos-body");
+    tbodyEgresos.innerHTML = `
+        <tr>
+            <td style="font-weight: 600;">Alquileres de Salones (Fijos)</td>
+            <td style="text-align: right; font-weight: 700; color: var(--danger-light);">${formatCurrency(r.totalAlquileres)}</td>
+        </tr>
+        <tr>
+            <td style="font-weight: 600;">Logística / Combustible</td>
+            <td style="text-align: right; font-weight: 700; color: var(--danger-light);">${formatCurrency(r.gastoCombustible)}</td>
+        </tr>
+        <tr style="border-top: 2px solid var(--border-color); background: rgba(255,255,255,0.02);">
+            <td style="font-weight: 700; color: var(--text-primary);">TOTAL EGRESOS</td>
+            <td style="text-align: right; font-weight: 800; color: var(--danger-light);">${formatCurrency(r.totalGastos)}</td>
+        </tr>
+    `;
+}
+
+function copyReportToClipboard() {
+    const r = getReportData();
+    if (!r) return;
+    
+    const line = "=========================================";
+    const separator = "-----------------------------------------";
+    
+    let sedesTexto = "";
+    r.sedesResumen.forEach(s => {
+        sedesTexto += `- ${s.nombre}: ${formatCurrency(s.recaudado)} (${s.alumnosCount} alumnos)\n`;
+    });
+    
+    const texto = `${line}
+BAILA CON WALLY - REPORTE MENSUAL OPERATIVO
+Período: ${r.mesLabel}
+${line}
+
+RESUMEN FINANCIERO:
+- Ingresos Recaudados (Real): ${formatCurrency(r.totalRecaudado)}
+- Ingresos Pendientes de Cobro: ${formatCurrency(r.totalPendiente)}
+- Total Facturado Esperado: ${formatCurrency(r.totalEsperado)}
+${separator}
+- Gastos de Alquileres: ${formatCurrency(r.totalAlquileres)}
+- Gasto de Combustible: ${formatCurrency(r.gastoCombustible)}
+- TOTAL EGRESOS OPERATIVOS: ${formatCurrency(r.totalGastos)}
+${separator}
+=> CAJA NETA REAL LIBRE: ${formatCurrency(r.cajaNeta)}
+
+MÉTRICAS OPERATIVAS:
+- Alumnos Activos Matriculados: ${r.alumnosActivosCount}
+- Clases Dictadas / Asistencias: ${r.asistenciasMesCount}
+- Tasa de Asistencia General: ${r.tasaPresentismo}%
+
+DESGLOSE DE INGRESOS POR SEDE:
+${sedesTexto}${line}
+Generado automáticamente por Wally CRM.`;
+
+    navigator.clipboard.writeText(texto).then(() => {
+        showToast("¡Reporte mensual copiado al portapapeles!", "success");
+    }).catch(err => {
+        console.error("No se pudo copiar el reporte:", err);
+        showToast("Error al copiar al portapapeles", "danger");
+    });
+}
+
 // --- INITIALIZE APPLICATION ---
 function initializeApp() {
     initAuth();
@@ -1674,6 +1903,10 @@ function initializeApp() {
     initLiquidaciones();
     renderLiquidaciones();
     renderTablero();
+
+    // Módulo de Reportes
+    initReportes();
+    renderReporte();
 }
 
 // --- BOOTSTRAP APP ---

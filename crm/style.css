@@ -850,3 +850,100 @@ select:focus {
     z-index: 1;
 }
 
+/* Custom Month Input Style */
+input[type="month"] {
+    width: 100%;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 10px 14px;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    outline: none;
+    transition: var(--transition-smooth);
+}
+
+input[type="month"]:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+/* Filter Bar class for symmetric spacing */
+.filter-bar {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 14px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 107, 0, 0.08);
+}
+
+/* --- PRINT MEDIA STYLES (PDF EXPORT) --- */
+@media print {
+    /* Hide everything by default */
+    body * {
+        visibility: hidden;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+    
+    /* Show only the reports view and its children */
+    #view-reportes, #view-reportes * {
+        visibility: visible;
+    }
+    
+    /* Reposition reports container to fill the page cleanly */
+    #view-reportes {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        color: #000000 !important;
+        background: #ffffff !important;
+        font-family: 'Montserrat', sans-serif !important;
+    }
+    
+    /* Hide the month selector card and action buttons */
+    #view-reportes > div:first-of-type {
+        display: none !important;
+    }
+    
+    /* Force white background and dark text on cards for printing */
+    #view-reportes .card {
+        background: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #cccccc !important;
+        border-left-width: 6px !important;
+        margin-bottom: 15px !important;
+        box-shadow: none !important;
+        border-radius: 4px !important;
+        padding: 14px !important;
+    }
+    
+    /* Set borders and colors for tables */
+    #view-reportes table {
+        border-collapse: collapse !important;
+        width: 100% !important;
+    }
+    
+    #view-reportes th {
+        background-color: #f0f0f0 !important;
+        color: #000000 !important;
+        border-bottom: 2px solid #cccccc !important;
+        font-weight: 700 !important;
+    }
+    
+    #view-reportes td {
+        color: #111111 !important;
+        border-bottom: 1px solid #e0e0e0 !important;
+    }
+    
+    #view-reportes h3, #view-reportes h4 {
+        color: #000000 !important;
+    }
+}
+
+

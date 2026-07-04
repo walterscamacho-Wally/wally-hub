@@ -48,6 +48,10 @@
                     <span class="icon"><i class="fa-solid fa-chart-simple"></i></span>
                     <span>Tablero</span>
                 </a>
+                <a href="#" class="nav-item" data-tab="reportes">
+                    <span class="icon"><i class="fa-solid fa-file-invoice"></i></span>
+                    <span>Reportes</span>
+                </a>
                 <a href="../hub/" class="nav-item" style="border-top: 1px solid rgba(255,107,0,0.15); margin-top: 2rem;">
                     <span class="icon"><i class="fa-solid fa-arrow-left"></i></span>
                     <span>Volver al Hub</span>
@@ -265,7 +269,7 @@
                         </div>
 
                         <!-- Filtros -->
-                        <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <div class="filter-bar">
                             <div style="flex-grow: 1; min-width: 200px; position: relative;">
                                 <input type="text" id="input-search-alumnos" placeholder="Buscar por nombre o teléfono...">
                             </div>
@@ -527,6 +531,99 @@
                                 <span class="text-muted text-sm" style="text-transform:uppercase; font-weight:700;">Alumnos Inactivos (Ausencias)</span>
                                 <h5 style="font-size: 32px; font-weight: 800; color: var(--danger-light); font-family: var(--font-title); margin-top: 8px;" id="tablero-alumnos-inactivos">0</h5>
                                 <p class="text-muted text-sm">Alumnos con asistencia nula en el ciclo</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW 6: REPORTES MENSUALES (Módulo de Reportes) -->
+                <section id="view-reportes" class="view-section">
+                    <!-- Selector de Período y Botones de Acción -->
+                    <div class="card" style="margin-bottom: 24px; padding: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <label for="reporte-mes-anio" style="font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; color: var(--text-secondary);">Seleccionar Período:</label>
+                                <input type="month" id="reporte-mes-anio" class="form-input" style="width: auto; padding: 8px 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,107,0,0.15); border-radius: 4px; color: var(--text-primary); font-family: 'Montserrat', sans-serif;">
+                            </div>
+                            <div style="display: flex; gap: 12px;">
+                                <button id="btn-reporte-copiar" class="btn btn-secondary" style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 11px; padding: 10px 16px; letter-spacing: 1px;">
+                                    <i class="fa-solid fa-copy"></i> Copiar Resumen
+                                </button>
+                                <button id="btn-reporte-imprimir" class="btn btn-primary" style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 11px; padding: 10px 16px; letter-spacing: 1px;">
+                                    <i class="fa-solid fa-print"></i> Guardar PDF / Imprimir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen General en Cards (KPIs) -->
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                        <div class="card" style="padding: 20px; border-left: 4px solid var(--accent-primary);">
+                            <p class="text-muted text-xs" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Recaudado Bruto</p>
+                            <h4 style="font-size: 26px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px;" id="rep-kpi-ingresos">$0</h4>
+                            <span class="text-muted text-xs" id="rep-kpi-ingresos-desc">0 cuotas pagadas</span>
+                        </div>
+                        <div class="card" style="padding: 20px; border-left: 4px solid var(--danger-light);">
+                            <p class="text-muted text-xs" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Gastos Operativos</p>
+                            <h4 style="font-size: 26px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px; color: var(--danger-light);" id="rep-kpi-egresos">$0</h4>
+                            <span class="text-muted text-xs" id="rep-kpi-egresos-desc">Sueldos, alquileres y combustible</span>
+                        </div>
+                        <div class="card" style="padding: 20px; border-left: 4px solid var(--success);">
+                            <p class="text-muted text-xs" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Caja Neta Libre</p>
+                            <h4 style="font-size: 26px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px; color: var(--success-light);" id="rep-kpi-neto">$0</h4>
+                            <span class="text-muted text-xs" id="rep-kpi-neto-desc">Ingresos - Gastos</span>
+                        </div>
+                        <div class="card" style="padding: 20px; border-left: 4px solid var(--accent-light);">
+                            <p class="text-muted text-xs" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Tasa de Presentismo</p>
+                            <h4 style="font-size: 26px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px;" id="rep-kpi-asistencia">0%</h4>
+                            <span class="text-muted text-xs" id="rep-kpi-asistencia-desc">Alumnos activos: 0</span>
+                        </div>
+                    </div>
+
+                    <!-- Desgloses en dos columnas -->
+                    <div class="grid-layout" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <!-- Columna Izquierda: Ingresos por Sede -->
+                        <div class="card" style="padding: 20px;">
+                            <div class="card-header" style="padding-bottom: 12px; margin-bottom: 16px;">
+                                <div class="card-header-title">
+                                    <h3 style="font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">Detalle de Ingresos por Sede</h3>
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Sede</th>
+                                            <th style="text-align: right;">Alumnos</th>
+                                            <th style="text-align: right;">Recaudado Real</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rep-table-ingresos-body">
+                                        <!-- Dinámico -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Columna Derecha: Desglose de Gastos -->
+                        <div class="card" style="padding: 20px;">
+                            <div class="card-header" style="padding-bottom: 12px; margin-bottom: 16px;">
+                                <div class="card-header-title">
+                                    <h3 style="font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">Detalle de Egresos Operativos</h3>
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Concepto de Gasto</th>
+                                            <th style="text-align: right;">Monto Mensual</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rep-table-egresos-body">
+                                        <!-- Dinámico -->
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
