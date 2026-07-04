@@ -121,7 +121,7 @@ const INITIAL_DATA = {
 const SUPABASE_URL = "https://ykbtnebrxdajyulbderj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_jkhz6TgXqBkBGYnyOW5I_A_UQeiRZ06";
 const supabaseLib = window.supabase || globalThis.supabase;
-const supabase = supabaseLib ? supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const supabaseClient = supabaseLib ? supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 let currentUser = null;
 let isSyncing = false;
@@ -158,9 +158,9 @@ function saveDB() {
 }
 
 async function pullFromCloud() {
-    if (!supabase || !currentUser) return;
+    if (!supabaseClient || !currentUser) return;
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from("crm_data")
             .select("db_json")
             .eq("user_id", currentUser.id)
@@ -187,10 +187,10 @@ async function pullFromCloud() {
 }
 
 async function pushToCloud() {
-    if (!supabase || !currentUser || isSyncing) return;
+    if (!supabaseClient || !currentUser || isSyncing) return;
     isSyncing = true;
     try {
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from("crm_data")
             .upsert({
                 user_id: currentUser.id,
@@ -1623,7 +1623,7 @@ function renderCharts(liquidacionesMes, totalAlquileres, combustibleMensual, tot
 }
 // --- FUNCIONES DE AUTENTICACIÓN ---
 function initAuth() {
-    if (!supabase) {
+    if (!supabaseClient) {
         console.error("Supabase CDN not loaded.");
         const desc = document.querySelector(".auth-description");
         if (desc) {
@@ -1635,7 +1635,7 @@ function initAuth() {
     // Iniciar con Google
     document.getElementById("btn-login-google").addEventListener("click", async () => {
         try {
-            const { error } = await supabase.auth.signInWithOAuth({
+            const { error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
                     redirectTo: window.location.origin + window.location.pathname
@@ -1658,7 +1658,7 @@ function initAuth() {
         btnSubmit.innerText = "Ingresando...";
         
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            const { error } = await supabaseClient.auth.signInWithPassword({
                 email,
                 password
             });
@@ -1676,7 +1676,7 @@ function initAuth() {
     // Cerrar sesión
     document.getElementById("btn-logout").addEventListener("click", async () => {
         try {
-            const { error } = await supabase.auth.signOut();
+            const { error } = await supabaseClient.auth.signOut();
             if (error) throw error;
             showToast("Sesión cerrada", "success");
         } catch (e) {
@@ -1685,7 +1685,7 @@ function initAuth() {
     });
 
     // Escuchar estado de autenticación
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
         console.log("Auth event:", event, session);
         if (session) {
             currentUser = session.user;
