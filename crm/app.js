@@ -1312,12 +1312,20 @@ function populatePagoManualAlumnos() {
 }
 
 function deleteLiquidacion(id) {
-    if (confirm("¿Estás seguro de que deseas eliminar este pago manual?")) {
+    const liq = db.liquidaciones.find(l => l.id === id);
+    if (!liq) return;
+    
+    const isManual = liq.esManual || liq.id.startsWith("liq-manual-");
+    const confirmMsg = isManual 
+        ? "¿Estás seguro de que deseas eliminar este pago manual?"
+        : "¿Estás seguro de que deseas eliminar esta cuota mensual? Podrás volver a generarla haciendo clic en el botón 'Generar Liquidación del Mes' tras actualizar la ficha del alumno.";
+        
+    if (confirm(confirmMsg)) {
         db.liquidaciones = db.liquidaciones.filter(l => l.id !== id);
         saveDB();
         renderLiquidaciones();
         renderTablero();
-        showToast("Pago manual eliminado.", "danger");
+        showToast(isManual ? "Pago manual eliminado." : "Cuota eliminada. Lista para regenerar.", "danger");
     }
 }
 
@@ -1489,8 +1497,8 @@ function renderLiquidaciones() {
             </a>
         `;
         
-        const deleteBtn = isManual
-            ? `<button class="btn btn-danger-outline btn-sm btn-icon-only" onclick="deleteLiquidacion('${liq.id}')" style="height:26px; width:26px; padding:0; font-size:10px; margin-left:4px;" title="Eliminar Pago Manual"><i class="fa-solid fa-trash-can"></i></button>`
+        const deleteBtn = (isManual || liq.estado === "Pendiente")
+            ? `<button class="btn btn-danger-outline btn-sm btn-icon-only" onclick="deleteLiquidacion('${liq.id}')" style="height:26px; width:26px; padding:0; font-size:10px; margin-left:4px;" title="${isManual ? 'Eliminar Pago Manual' : 'Eliminar cuota para volver a calcular'}"><i class="fa-solid fa-trash-can"></i></button>`
             : '';
         
         tr.innerHTML = `
