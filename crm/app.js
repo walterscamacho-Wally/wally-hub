@@ -1266,8 +1266,11 @@ function initLiquidaciones() {
             openModal(modalPagoManual);
         });
         
-        document.getElementById("close-modal-pago-manual").addEventListener("click", () => closeModal(modalPagoManual));
-        document.getElementById("btn-cancel-pago-manual").addEventListener("click", () => closeModal(modalPagoManual));
+        const closeBtn = document.getElementById("close-modal-pago-manual");
+        if (closeBtn) closeBtn.addEventListener("click", () => closeModal(modalPagoManual));
+        
+        const cancelBtn = document.getElementById("btn-cancel-pago-manual");
+        if (cancelBtn) cancelBtn.addEventListener("click", () => closeModal(modalPagoManual));
         
         if (selectEstadoPago && groupPagoMetodo) {
             selectEstadoPago.addEventListener("change", () => {
@@ -1320,8 +1323,11 @@ function initLiquidaciones() {
     const formCobrar = document.getElementById("form-cobrar-cuota");
     
     if (modalCobrar && formCobrar) {
-        document.getElementById("close-modal-cobrar-cuota").addEventListener("click", () => closeModal(modalCobrar));
-        document.getElementById("btn-cancel-cobrar-cuota").addEventListener("click", () => closeModal(modalCobrar));
+        const closeCobrarBtn = document.getElementById("close-modal-cobrar-cuota");
+        if (closeCobrarBtn) closeCobrarBtn.addEventListener("click", () => closeModal(modalCobrar));
+        
+        const cancelCobrarBtn = document.getElementById("btn-cancel-cobrar-cuota");
+        if (cancelCobrarBtn) cancelCobrarBtn.addEventListener("click", () => closeModal(modalCobrar));
         
         formCobrar.addEventListener("submit", (e) => {
             e.preventDefault();
