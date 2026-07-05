@@ -1255,16 +1255,29 @@ function initLiquidaciones() {
     const btnAddPagoManual = document.getElementById("btn-add-pago-manual");
     const modalPagoManual = document.getElementById("modal-pago-manual");
     const formPagoManual = document.getElementById("form-pago-manual");
+    const selectEstadoPago = document.getElementById("form-input-pago-estado");
+    const groupPagoMetodo = document.getElementById("group-pago-manual-metodo");
     
     if (btnAddPagoManual && modalPagoManual && formPagoManual) {
         btnAddPagoManual.addEventListener("click", () => {
             formPagoManual.reset();
+            if (groupPagoMetodo) groupPagoMetodo.style.display = "block"; // Mostrar por defecto ya que "Pagado" está seleccionado
             populatePagoManualAlumnos();
             openModal(modalPagoManual);
         });
         
         document.getElementById("close-modal-pago-manual").addEventListener("click", () => closeModal(modalPagoManual));
         document.getElementById("btn-cancel-pago-manual").addEventListener("click", () => closeModal(modalPagoManual));
+        
+        if (selectEstadoPago && groupPagoMetodo) {
+            selectEstadoPago.addEventListener("change", () => {
+                if (selectEstadoPago.value === "Pendiente") {
+                    groupPagoMetodo.style.display = "none";
+                } else {
+                    groupPagoMetodo.style.display = "block";
+                }
+            });
+        }
         
         formPagoManual.addEventListener("submit", (e) => {
             e.preventDefault();
@@ -1273,6 +1286,7 @@ function initLiquidaciones() {
             const monto = parseFloat(document.getElementById("form-input-pago-monto").value) || 0;
             const estado = document.getElementById("form-input-pago-estado").value;
             const selectedMonth = selectMes.value;
+            const metodo = estado === "Pagado" ? (document.getElementById("form-input-pago-metodo").value || "Transferencia") : undefined;
             
             if (!alumnoId) {
                 showToast("Debes seleccionar un alumno.", "danger");
@@ -1288,7 +1302,8 @@ function initLiquidaciones() {
                 montoNeto: monto,
                 descuentoNombre: concepto,
                 estado: estado,
-                esManual: true
+                esManual: true,
+                metodoPago: metodo
             };
             
             db.liquidaciones.push(newLiq);
@@ -1297,6 +1312,32 @@ function initLiquidaciones() {
             renderTablero();
             closeModal(modalPagoManual);
             showToast(`Pago de ${formatCurrency(monto)} registrado correctamente.`);
+        });
+    }
+
+    // Modal Confirmar Cobro (para cuotas automáticas y manuales pendientes)
+    const modalCobrar = document.getElementById("modal-cobrar-cuota");
+    const formCobrar = document.getElementById("form-cobrar-cuota");
+    
+    if (modalCobrar && formCobrar) {
+        document.getElementById("close-modal-cobrar-cuota").addEventListener("click", () => closeModal(modalCobrar));
+        document.getElementById("btn-cancel-cobrar-cuota").addEventListener("click", () => closeModal(modalCobrar));
+        
+        formCobrar.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const id = document.getElementById("form-cobrar-liq-id").value;
+            const metodo = document.getElementById("form-cobrar-metodo").value;
+            
+            const liq = db.liquidaciones.find(l => l.id === id);
+            if (liq) {
+                liq.estado = "Pagado";
+                liq.metodoPago = metodo;
+                saveDB();
+                renderLiquidaciones();
+                renderTablero();
+                closeModal(modalCobrar);
+                showToast(`Pago registrado con éxito (${metodo}).`);
+            }
         });
     }
 }
@@ -1448,9 +1489,24 @@ function renderLiquidaciones() {
     result.forEach(({ liq, al, sedeNombre }) => {
         const tr = document.createElement("tr");
         
-        const badgeEstado = liq.estado === "Pagado"
-            ? '<span class="discount-tag" style="background-color:rgba(16,185,129,0.1); color:var(--success-light); border-color:rgba(16,185,129,0.25);">Pagado</span>'
-            : '<span class="discount-tag" style="background-color:rgba(245,158,11,0.1); color:var(--warning); border-color:rgba(245,158,11,0.25);">Pendiente</span>';
+        let badgeEstado = "";
+        if (liq.estado === "Pagado") {
+            const metodo = liq.metodoPago || "Transferencia";
+            let icon = '<i class="fa-solid fa-money-bill-transfer"></i>';
+            if (metodo === "Efectivo") {
+                icon = '<i class="fa-solid fa-money-bill-wave" style="color:var(--success-light);"></i>';
+            } else if (metodo === "Mercado Pago") {
+                icon = '<i class="fa-solid fa-wallet" style="color:#00b1ea;"></i>';
+            }
+            badgeEstado = `
+                <div style="display:flex; flex-direction:column; align-items:flex-start; gap:4px;">
+                    <span class="discount-tag" style="background-color:rgba(16,185,129,0.1); color:var(--success-light); border-color:rgba(16,185,129,0.25);">Pagado</span>
+                    <span class="text-muted" style="font-size:10px; display:inline-flex; align-items:center; gap:3px; font-weight:500;">${icon} ${metodo}</span>
+                </div>
+            `;
+        } else {
+            badgeEstado = '<span class="discount-tag" style="background-color:rgba(245,158,11,0.1); color:var(--warning); border-color:rgba(245,158,11,0.25);">Pendiente</span>';
+        }
             
         const btnToggle = liq.estado === "Pagado"
             ? `<button class="btn btn-danger-outline btn-sm" onclick="toggleEstadoLiquidacion('${liq.id}')" style="padding:4px 8px; font-size:10px;"><i class="fa-solid fa-rotate-left"></i> Revertir</button>`
@@ -1523,17 +1579,42 @@ function toggleEstadoLiquidacion(id) {
     const liq = db.liquidaciones.find(l => l.id === id);
     if (!liq) return;
     
-    liq.estado = liq.estado === "Pagado" ? "Pendiente" : "Pagado";
-    saveDB();
-    renderLiquidaciones();
-    renderTablero();
-    
     const al = db.alumnos.find(a => a.id === liq.alumnoId);
-    const alNombre = al ? al.nombre : "";
+    const alNombre = al ? al.nombre : "Alumno Desconocido";
+    
     if (liq.estado === "Pagado") {
-        showToast(`Cobro registrado para ${alNombre}.`);
-    } else {
+        // Revertir a pendiente directamente (se borra el método de pago)
+        liq.estado = "Pendiente";
+        delete liq.metodoPago;
+        saveDB();
+        renderLiquidaciones();
+        renderTablero();
         showToast(`Pago revertido para ${alNombre}.`, "warning");
+    } else {
+        // Abrir modal para elegir método de pago
+        const isManual = liq.esManual || liq.id.startsWith("liq-manual-");
+        let conceptoText = "";
+        if (isManual) {
+            conceptoText = liq.descuentoNombre;
+        } else if (al) {
+            const sede = db.sedes.find(s => s.id === al.sedeId);
+            conceptoText = sede ? sede.nombre : "Clase Principal";
+            if (al.sedeExtraId) {
+                const SedeExtra = db.sedes.find(s => s.id === al.sedeExtraId);
+                if (SedeExtra) {
+                    conceptoText += ` + ${SedeExtra.nombre}`;
+                }
+            }
+        }
+        
+        document.getElementById("form-cobrar-liq-id").value = liq.id;
+        document.getElementById("cobrar-alumno-nombre").innerText = alNombre;
+        document.getElementById("cobrar-concepto").innerText = conceptoText || "Cobranza de clase";
+        document.getElementById("cobrar-monto").innerText = formatCurrency(liq.montoNeto);
+        document.getElementById("form-cobrar-metodo").value = "Transferencia"; // Valor inicial por defecto
+        
+        const modalCobrar = document.getElementById("modal-cobrar-cuota");
+        openModal(modalCobrar);
     }
 }
 
@@ -1878,16 +1959,28 @@ function getReportData() {
     
     const liquidacionesMes = db.liquidaciones.filter(l => l.mes === selectedMonth);
     
-    // Ingresos
+    // Ingresos y desglose de método de pago
     let totalEsperado = 0;
     let totalRecaudado = 0;
     let cuotasPagasCount = 0;
+    let totalTransferencia = 0;
+    let totalEfectivo = 0;
+    let totalMercadoPago = 0;
     
     liquidacionesMes.forEach(liq => {
         totalEsperado += liq.montoNeto;
         if (liq.estado === "Pagado") {
             totalRecaudado += liq.montoNeto;
             cuotasPagasCount++;
+            
+            const metodo = liq.metodoPago || "Transferencia";
+            if (metodo === "Transferencia") {
+                totalTransferencia += liq.montoNeto;
+            } else if (metodo === "Efectivo") {
+                totalEfectivo += liq.montoNeto;
+            } else if (metodo === "Mercado Pago") {
+                totalMercadoPago += liq.montoNeto;
+            }
         }
     });
     
@@ -1961,7 +2054,10 @@ function getReportData() {
         asistenciasMesCount: asistenciasMes.length,
         alumnosActivosCount: db.alumnos.length,
         tasaPresentismo,
-        sedesResumen
+        sedesResumen,
+        totalTransferencia,
+        totalEfectivo,
+        totalMercadoPago
     };
 }
 
@@ -1996,6 +2092,25 @@ function renderReporte() {
         `;
         tbodyIngresos.appendChild(tr);
     });
+    
+    // Renderizar Tabla de Ingresos por Método de Pago
+    const tbodyMetodos = document.getElementById("rep-table-metodos-body");
+    if (tbodyMetodos) {
+        tbodyMetodos.innerHTML = `
+            <tr>
+                <td style="font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-money-bill-transfer" style="margin-right: 6px; width: 16px; color: var(--text-secondary);"></i>Transferencia Bancaria</td>
+                <td style="text-align: right; font-weight: 700; color: var(--success-light);">${formatCurrency(r.totalTransferencia)}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-money-bill-wave" style="margin-right: 6px; width: 16px; color: var(--success-light);"></i>Efectivo</td>
+                <td style="text-align: right; font-weight: 700; color: var(--success-light);">${formatCurrency(r.totalEfectivo)}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-wallet" style="margin-right: 6px; width: 16px; color: #00b1ea;"></i>Mercado Pago</td>
+                <td style="text-align: right; font-weight: 700; color: var(--success-light);">${formatCurrency(r.totalMercadoPago)}</td>
+            </tr>
+        `;
+    }
     
     // Renderizar Tabla de Egresos
     const tbodyEgresos = document.getElementById("rep-table-egresos-body");
@@ -2036,6 +2151,11 @@ RESUMEN FINANCIERO:
 - Ingresos Recaudados (Real): ${formatCurrency(r.totalRecaudado)}
 - Ingresos Pendientes de Cobro: ${formatCurrency(r.totalPendiente)}
 - Total Facturado Esperado: ${formatCurrency(r.totalEsperado)}
+${separator}
+COBROS POR MÉTODO DE PAGO:
+- Transferencia Bancaria: ${formatCurrency(r.totalTransferencia)}
+- Efectivo: ${formatCurrency(r.totalEfectivo)}
+- Mercado Pago: ${formatCurrency(r.totalMercadoPago)}
 ${separator}
 - Gastos de Alquileres: ${formatCurrency(r.totalAlquileres)}
 - Gasto de Combustible: ${formatCurrency(r.gastoCombustible)}

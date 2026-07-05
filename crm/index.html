@@ -11,7 +11,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- CSS Estilos -->
-    <link rel="stylesheet" href="style.css?v=4.4.0">
+    <link rel="stylesheet" href="style.css?v=4.5.0">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Supabase JS Client CDN -->
@@ -585,26 +585,49 @@
 
                     <!-- Desgloses en dos columnas -->
                     <div class="grid-2-col">
-                        <!-- Columna Izquierda: Ingresos por Sede -->
-                        <div class="card" style="padding: 20px;">
-                            <div class="card-header" style="padding-bottom: 12px; margin-bottom: 16px;">
-                                <div class="card-header-title">
-                                    <h3 style="font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">Detalle de Ingresos por Clase</h3>
+                        <!-- Columna Izquierda: Ingresos por Clase y Método -->
+                        <div style="display: flex; flex-direction: column; gap: 20px;">
+                            <div class="card" style="padding: 20px; margin: 0;">
+                                <div class="card-header" style="padding-bottom: 12px; margin-bottom: 16px;">
+                                    <div class="card-header-title">
+                                        <h3 style="font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">Detalle de Ingresos por Clase</h3>
+                                    </div>
+                                </div>
+                                <div class="table-container">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Clase / Actividad</th>
+                                                <th style="text-align: right;">Alumnos</th>
+                                                <th style="text-align: right;">Recaudado Real</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="rep-table-ingresos-body">
+                                            <!-- Dinámico -->
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
-                            <div class="table-container">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Clase / Actividad</th>
-                                            <th style="text-align: right;">Alumnos</th>
-                                            <th style="text-align: right;">Recaudado Real</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="rep-table-ingresos-body">
-                                        <!-- Dinámico -->
-                                    </tbody>
-                                </table>
+                            
+                            <div class="card" style="padding: 20px; margin: 0;">
+                                <div class="card-header" style="padding-bottom: 12px; margin-bottom: 16px;">
+                                    <div class="card-header-title">
+                                        <h3 style="font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">Ingresos por Método de Pago</h3>
+                                    </div>
+                                </div>
+                                <div class="table-container">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Método de Pago</th>
+                                                <th style="text-align: right;">Monto Recaudado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="rep-table-metodos-body">
+                                            <!-- Dinámico -->
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
 
@@ -841,9 +864,55 @@
                         </select>
                     </div>
                 </div>
+                <div class="form-group" id="group-pago-manual-metodo">
+                    <label for="form-input-pago-metodo">Método de Pago</label>
+                    <select id="form-input-pago-metodo">
+                        <option value="Transferencia" selected>Transferencia Bancaria</option>
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Mercado Pago">Mercado Pago</option>
+                    </select>
+                </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" id="btn-cancel-pago-manual">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Registrar Pago</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIRMAR COBRO -->
+    <div id="modal-cobrar-cuota" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Confirmar Cobro</h3>
+                <span class="close-modal" id="close-modal-cobrar-cuota">&times;</span>
+            </div>
+            <form id="form-cobrar-cuota">
+                <input type="hidden" id="form-cobrar-liq-id">
+                
+                <div style="background: rgba(255,107,0,0.05); padding: 12px; border-radius: 6px; margin-bottom: 16px; border: 1px dashed rgba(255,107,0,0.2);">
+                    <div style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px; margin-bottom: 2px;">Alumno</div>
+                    <div id="cobrar-alumno-nombre" style="font-weight: 700; color: var(--text-primary); margin-bottom: 8px; font-size: 14px;">-</div>
+                    
+                    <div style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px; margin-bottom: 2px;">Concepto</div>
+                    <div id="cobrar-concepto" style="font-weight: 500; color: var(--text-primary); margin-bottom: 8px; font-size: 12px;">-</div>
+                    
+                    <div style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px; margin-bottom: 2px;">Monto a Cobrar</div>
+                    <div id="cobrar-monto" style="font-weight: 800; color: var(--accent-primary); font-size: 18px;">$ 0</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="form-cobrar-metodo">Método de Pago</label>
+                    <select id="form-cobrar-metodo" required>
+                        <option value="Transferencia" selected>Transferencia Bancaria</option>
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Mercado Pago">Mercado Pago</option>
+                    </select>
+                </div>
+                
+                <div class="modal-actions" style="margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-cobrar-cuota">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">Registrar Cobro</button>
                 </div>
             </form>
         </div>
@@ -889,6 +958,6 @@
     </div>
 
     <!-- Script de Lógica -->
-    <script src="app.js?v=4.4.0"></script>
+    <script src="app.js?v=4.5.0"></script>
 </body>
 </html>
