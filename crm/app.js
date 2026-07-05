@@ -636,11 +636,13 @@ const DEMO_ALUMNOS = [
 function populateAlumnoDropdowns() {
     const filterSede = document.getElementById("select-filter-sede");
     const formSede = document.getElementById("form-input-alumno-sede");
+    const formSedeExtra = document.getElementById("form-input-alumno-sede-extra");
     const formDescuento = document.getElementById("form-input-alumno-descuento");
     
     // Guardar selecciones actuales
     const currentFilter = filterSede.value;
     const currentFormSede = formSede.value;
+    const currentFormSedeExtra = formSedeExtra ? formSedeExtra.value : "";
     const currentFormDesc = formDescuento.value;
     
     // 1. Selector de filtro
@@ -650,13 +652,24 @@ function populateAlumnoDropdowns() {
     });
     filterSede.value = currentFilter;
     
-    // 2. Selector en formulario (sede)
+    // 2. Selector en formulario (clase principal)
     formSede.innerHTML = '<option value="" disabled selected>Selecciona una clase</option>';
     db.sedes.forEach(s => {
         formSede.innerHTML += `<option value="${s.id}">${s.nombre}</option>`;
     });
     if (db.sedes.find(s => s.id === currentFormSede)) {
         formSede.value = currentFormSede;
+    }
+    
+    // 2b. Selector en formulario (clase extra)
+    if (formSedeExtra) {
+        formSedeExtra.innerHTML = '<option value="">Ninguna</option>';
+        db.sedes.forEach(s => {
+            formSedeExtra.innerHTML += `<option value="${s.id}">${s.nombre}</option>`;
+        });
+        if (!currentFormSedeExtra || db.sedes.find(s => s.id === currentFormSedeExtra)) {
+            formSedeExtra.value = currentFormSedeExtra;
+        }
     }
     
     // 3. Selector en formulario (descuento)
@@ -683,8 +696,8 @@ function renderAlumnos() {
     const alumnosFiltrados = db.alumnos.filter(al => {
         // Filtro por búsqueda
         const matchSearch = al.nombre.toLowerCase().includes(searchTerm) || al.telefono.includes(searchTerm);
-        // Filtro por sede
-        const matchSede = !filterSede || al.sedeId === filterSede;
+        // Filtro por clase
+        const matchSede = !filterSede || al.sedeId === filterSede || al.sedeExtraId === filterSede;
         return matchSearch && matchSede;
     });
 
@@ -708,6 +721,18 @@ function renderAlumnos() {
         const sedeObj = db.sedes.find(s => s.id === al.sedeId);
         const sedeNombre = sedeObj ? sedeObj.nombre : "Clase Desconocida";
         
+        let claseColTexto = sedeNombre;
+        if (al.sedeExtraId) {
+            const sedeExtraObj = db.sedes.find(s => s.id === al.sedeExtraId);
+            if (sedeExtraObj) {
+                claseColTexto += `<div class="text-muted text-xs" style="margin-top: 4px; font-weight: 500;"><i class="fa-solid fa-plus" style="font-size:8px; margin-right:4px; color:var(--accent-primary);"></i>${sedeExtraObj.nombre}</div>`;
+            }
+        }
+        
+        const freqColTexto = al.sedeExtraId && al.frecuenciaExtra
+            ? `${al.frecuencia} + ${al.frecuenciaExtra} vez/sem`
+            : `${al.frecuencia} vez/sem`;
+        
         const descObj = db.descuentos.find(d => d.id === al.descuentoId);
         const descBadge = descObj 
             ? `<span class="discount-tag">${descObj.nombre}</span>` 
@@ -728,8 +753,8 @@ function renderAlumnos() {
                     <i class="fa-brands fa-whatsapp" style="font-size: 1.1rem; margin-right: 4px;"></i> ${al.telefono}
                 </a>
             </td>
-            <td>${sedeNombre}</td>
-            <td>${al.frecuencia} vez/sem</td>
+            <td>${claseColTexto}</td>
+            <td>${freqColTexto}</td>
             <td>${descBadge}</td>
             <td>
                 <span class="status-indicator" style="background-color: ${al.clasesDisponibles > 2 ? 'var(--success)' : al.clasesDisponibles > 0 ? 'var(--warning)' : 'var(--danger)'}; width:6px; height:6px;"></span>
@@ -750,6 +775,8 @@ function initAlumnosListeners() {
     const btnCancel = document.getElementById("btn-cancel-alumno");
     const closeBtn = document.getElementById("close-modal-alumno");
     const selectFrecuencia = document.getElementById("form-input-alumno-frecuencia");
+    const selectSedeExtra = document.getElementById("form-input-alumno-sede-extra");
+    const selectFrecuenciaExtra = document.getElementById("form-input-alumno-frecuencia-extra");
     const inputClases = document.getElementById("form-input-alumno-clases");
     
     // Abrir modal
@@ -766,11 +793,24 @@ function initAlumnosListeners() {
     btnCancel.addEventListener("click", () => closeModal(modalAlumno));
     closeBtn.addEventListener("click", () => closeModal(modalAlumno));
     
-    // Auto-calcular clases estimadas cuando cambia la frecuencia en el formulario
-    selectFrecuencia.addEventListener("change", () => {
-        const freq = parseInt(selectFrecuencia.value) || 2;
-        inputClases.value = freq * 4;
+    // Auto-calcular clases estimadas cuando cambian las frecuencias
+    function recalculateTotalClases() {
+        const freq1 = parseInt(selectFrecuencia.value) || 2;
+        const freq2 = selectSedeExtra.value !== "" ? (parseInt(selectFrecuenciaExtra.value) || 0) : 0;
+        inputClases.value = (freq1 * 4) + (freq2 * 4);
+    }
+    
+    selectSedeExtra.addEventListener("change", () => {
+        if (selectSedeExtra.value === "") {
+            selectFrecuenciaExtra.value = "0";
+        } else if (selectFrecuenciaExtra.value === "0") {
+            selectFrecuenciaExtra.value = "2";
+        }
+        recalculateTotalClases();
     });
+    
+    selectFrecuencia.addEventListener("change", recalculateTotalClases);
+    selectFrecuenciaExtra.addEventListener("change", recalculateTotalClases);
     
     // Buscar y Filtrar Alumnos en tiempo real
     document.getElementById("input-search-alumnos").addEventListener("input", renderAlumnos);
@@ -784,6 +824,8 @@ function initAlumnosListeners() {
         const telefono = document.getElementById("form-input-alumno-telefono").value.replace(/\D/g, ""); // Limpiar no numéricos
         const sedeId = document.getElementById("form-input-alumno-sede").value;
         const frecuencia = parseInt(selectFrecuencia.value);
+        const sedeExtraId = selectSedeExtra.value || "";
+        const frecuenciaExtra = sedeExtraId ? (parseInt(selectFrecuenciaExtra.value) || 0) : 0;
         const descuentoId = document.getElementById("form-input-alumno-descuento").value;
         const clasesTotales = parseInt(inputClases.value) || 8;
         const notas = document.getElementById("form-input-alumno-notas").value.trim();
@@ -803,7 +845,7 @@ function initAlumnosListeners() {
                 if (clasesTotales !== viejo.clasesTotales) {
                     clasesDisponibles = clasesTotales;
                 }
-                db.alumnos[index] = { id, nombre, telefono, sedeId, frecuencia, descuentoId, clasesDisponibles, clasesTotales, notas };
+                db.alumnos[index] = { id, nombre, telefono, sedeId, frecuencia, descuentoId, clasesDisponibles, clasesTotales, notas, sedeExtraId, frecuenciaExtra };
                 showToast(`Alumno "${nombre}" actualizado.`);
             }
         } else {
@@ -815,6 +857,8 @@ function initAlumnosListeners() {
                 telefono,
                 sedeId,
                 frecuencia,
+                sedeExtraId,
+                frecuenciaExtra,
                 descuentoId,
                 clasesDisponibles: clasesTotales,
                 clasesTotales,
@@ -850,6 +894,8 @@ function editAlumno(id) {
     document.getElementById("form-input-alumno-telefono").value = al.telefono;
     document.getElementById("form-input-alumno-sede").value = al.sedeId;
     document.getElementById("form-input-alumno-frecuencia").value = al.frecuencia;
+    document.getElementById("form-input-alumno-sede-extra").value = al.sedeExtraId || "";
+    document.getElementById("form-input-alumno-frecuencia-extra").value = al.frecuenciaExtra || "0";
     document.getElementById("form-input-alumno-descuento").value = al.descuentoId;
     document.getElementById("form-input-alumno-clases").value = al.clasesTotales;
     document.getElementById("form-input-alumno-notas").value = al.notas || "";
@@ -1002,8 +1048,8 @@ function renderPresentismo() {
     const sedeObj = db.sedes.find(s => s.id === sedeId);
     const sedeNombre = sedeObj ? sedeObj.nombre : "";
     
-    // Alumnos asignados a esta sede
-    const alumnosSede = db.alumnos.filter(al => al.sedeId === sedeId);
+    // Alumnos asignados a esta clase (principal o extra)
+    const alumnosSede = db.alumnos.filter(al => al.sedeId === sedeId || al.sedeExtraId === sedeId);
     
     // Filtrar en asistieron y pendientes
     const asistieron = [];
@@ -1297,7 +1343,17 @@ function generarLiquidacionesCiclo() {
         if (!sede) return;
         
         const freq = al.frecuencia; // 1, 2 o 3
-        const montoBase = sede.precios[freq] || 0;
+        const base1 = sede.precios[freq] || 0;
+        
+        let base2 = 0;
+        if (al.sedeExtraId && al.frecuenciaExtra) {
+            const sedeExtra = db.sedes.find(s => s.id === al.sedeExtraId);
+            if (sedeExtra) {
+                base2 = sedeExtra.precios[al.frecuenciaExtra] || 0;
+            }
+        }
+        
+        const montoBase = base1 + base2;
         
         // Calcular descuento
         let descuentoMonto = 0;
@@ -1401,14 +1457,31 @@ function renderLiquidaciones() {
                 ? `${formatCurrency(liq.montoBase)} - ${formatCurrency(liq.descuentoMonto)} <span class="text-muted" style="font-size:10px;">(${liq.descuentoNombre})</span>`
                 : `${formatCurrency(liq.montoBase)}`;
                 
-        const claseColTexto = isManual
-            ? '<span class="text-muted" style="font-style:italic;">Pago Adicional</span>'
-            : `${sedeNombre} <span class="text-muted" style="font-size:11px;">(${al.frecuencia} vez/sem)</span>`;
+        let claseColTexto = "";
+        if (isManual) {
+            claseColTexto = '<span class="text-muted" style="font-style:italic;">Pago Adicional</span>';
+        } else {
+            claseColTexto = `${sedeNombre} <span class="text-muted" style="font-size:11px;">(${al.frecuencia} vez/sem)</span>`;
+            if (al.sedeExtraId) {
+                const sedeExtra = db.sedes.find(s => s.id === al.sedeExtraId);
+                const extraNombre = sedeExtra ? sedeExtra.nombre : "Clase Extra";
+                claseColTexto += `<div class="text-muted text-xs" style="margin-top: 4px; font-weight: 500;"><i class="fa-solid fa-plus" style="font-size:8px; margin-right:4px; color:var(--accent-primary);"></i>${extraNombre} (${al.frecuenciaExtra} vez/sem)</div>`;
+            }
+        }
             
         // Enlace de WhatsApp con el desglose de cuota
-        const wsMsg = isManual
-            ? encodeURIComponent(`Hola ${al.nombre}! Te compartimos el detalle de tu pago adicional para el ciclo de ${mesLabel}:\n\n- Concepto: ${liq.descuentoNombre}\n- Monto: *${formatCurrency(liq.montoNeto)}*\n\nPodés realizar el pago por transferencia bancaria y enviarnos el comprobante por este medio. ¡Muchas gracias! Baila con Wally.`)
-            : encodeURIComponent(`Hola ${al.nombre}! Te compartimos el detalle de tu cuota mensual para el ciclo de ${mesLabel}:\n\n- Clase: ${sedeNombre}\n- Frecuencia: ${al.frecuencia} clase(s) por semana\n- Monto Base: ${formatCurrency(liq.montoBase)}\n${liq.descuentoMonto > 0 ? `- Descuento: ${formatCurrency(liq.descuentoMonto)} (${liq.descuentoNombre})\n` : ""}- Total Neto: *${formatCurrency(liq.montoNeto)}*\n\nPodés realizar el pago por transferencia bancaria y enviarnos el comprobante por este medio. ¡Muchas gracias! Baila con Wally.`);
+        let wsMsg = "";
+        if (isManual) {
+            wsMsg = encodeURIComponent(`Hola ${al.nombre}! Te compartimos el detalle de tu pago adicional para el ciclo de ${mesLabel}:\n\n- Concepto: ${liq.descuentoNombre}\n- Monto: *${formatCurrency(liq.montoNeto)}*\n\nPodés realizar el pago por transferencia bancaria y enviarnos el comprobante por este medio. ¡Muchas gracias! Baila con Wally.`);
+        } else {
+            let claseDetalleMsg = `- Clase: ${sedeNombre} (${al.frecuencia} vez/sem)`;
+            if (al.sedeExtraId) {
+                const sedeExtra = db.sedes.find(s => s.id === al.sedeExtraId);
+                const extraNombre = sedeExtra ? sedeExtra.nombre : "Clase Extra";
+                claseDetalleMsg = `- Clase Principal: ${sedeNombre} (${al.frecuencia} vez/sem)\n- Clase Extra: ${extraNombre} (${al.frecuenciaExtra} vez/sem)`;
+            }
+            wsMsg = encodeURIComponent(`Hola ${al.nombre}! Te compartimos el detalle de tu cuota mensual para el ciclo de ${mesLabel}:\n\n${claseDetalleMsg}\n- Monto Base: ${formatCurrency(liq.montoBase)}\n${liq.descuentoMonto > 0 ? `- Descuento: ${formatCurrency(liq.descuentoMonto)} (${liq.descuentoNombre})\n` : ""}- Total Neto: *${formatCurrency(liq.montoNeto)}*\n\nPodés realizar el pago por transferencia bancaria y enviarnos el comprobante por este medio. ¡Muchas gracias! Baila con Wally.`);
+        }
         
         const whatsappBtn = `
             <a href="https://wa.me/${al.telefono}?text=${wsMsg}" target="_blank" class="btn btn-secondary btn-sm" style="color:var(--accent-primary); border-color:rgba(255,107,0,0.3); padding:4px 8px; font-size:10px;">
