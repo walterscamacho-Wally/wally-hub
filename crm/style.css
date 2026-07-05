@@ -514,9 +514,10 @@ select:focus {
 }
 
 .discount-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
 }
 
 .discount-tag {
