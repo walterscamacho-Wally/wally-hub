@@ -11,7 +11,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- CSS Estilos -->
-    <link rel="stylesheet" href="style.css?v=4.0.0">
+    <link rel="stylesheet" href="style.css?v=4.1.0">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Supabase JS Client CDN -->
@@ -102,18 +102,18 @@
                         <div class="card card-span-2">
                             <div class="card-header">
                                 <div class="card-header-title">
-                                    <h3>Sedes y Matriz de Precios</h3>
-                                    <p class="text-muted">Configura las sedes operativas de danza y sus precios mensuales según la frecuencia semanal.</p>
+                                    <h3>Clases y Matriz de Precios</h3>
+                                    <p class="text-muted">Configura las clases/actividades de danza y sus precios mensuales según la frecuencia semanal.</p>
                                 </div>
                                 <button id="btn-add-sede" class="btn btn-primary">
-                                    <span>+</span> Nueva Sede
+                                    <span>+</span> Nueva Clase
                                 </button>
                             </div>
                             <div class="table-container">
                                 <table id="table-sedes">
                                     <thead>
                                         <tr>
-                                            <th>Sede</th>
+                                            <th>Clase / Actividad</th>
                                             <th>1 vez/sem</th>
                                             <th>2 veces/sem</th>
                                             <th>3 veces/sem</th>
@@ -174,11 +174,11 @@
                             </div>
 
                             <div class="table-container mt-4">
-                                <h4>Cálculo de Costo por Sede (Ida y Vuelta)</h4>
+                                <h4>Cálculo de Costo por Clase (Ida y Vuelta)</h4>
                                 <table id="table-logistica-costos" class="mt-2">
                                     <thead>
                                         <tr>
-                                            <th>Sede</th>
+                                            <th>Clase</th>
                                             <th>Distancia (Ida)</th>
                                             <th>Fórmula / Consumo</th>
                                             <th>Costo Estimado (Por Viaje)</th>
@@ -275,7 +275,7 @@
                             </div>
                             <div style="width: 200px;">
                                 <select id="select-filter-sede">
-                                    <option value="">Todas las sedes</option>
+                                    <option value="">Todas las clases</option>
                                     <!-- Dinámico -->
                                 </select>
                             </div>
@@ -287,7 +287,7 @@
                                     <tr>
                                         <th>Alumno</th>
                                         <th>WhatsApp</th>
-                                        <th>Sede</th>
+                                        <th>Clase Principal</th>
                                         <th>Frecuencia</th>
                                         <th>Descuento</th>
                                         <th>Pases Restantes</th>
@@ -308,14 +308,14 @@
                         <div class="card-header" style="flex-wrap: wrap; gap: 16px; align-items: center;">
                             <div class="card-header-title">
                                 <h3>Pasar Asistencia</h3>
-                                <p class="text-muted">Selecciona la sede y la fecha de hoy para registrar las asistencias. Los pases se descontarán automáticamente.</p>
+                                <p class="text-muted">Selecciona la clase y la fecha de hoy para registrar las asistencias. Los pases se descontarán automáticamente.</p>
                             </div>
                         </div>
                         <div class="form-grid" style="margin-bottom: 0;">
                             <div class="form-group">
-                                <label for="select-presentismo-sede">Selecciona la Sede de la Clase</label>
+                                <label for="select-presentismo-sede">Selecciona la Clase / Actividad</label>
                                 <select id="select-presentismo-sede">
-                                    <option value="" disabled selected>Selecciona una sede</option>
+                                    <option value="" disabled selected>Selecciona una clase</option>
                                     <!-- Dinámico -->
                                 </select>
                             </div>
@@ -332,7 +332,7 @@
                             <div class="card-header">
                                 <div class="card-header-title">
                                     <h3>Lista de Clase (Pendientes)</h3>
-                                    <p class="text-muted" id="presentismo-pendientes-count">Selecciona una sede para listar a los alumnos.</p>
+                                    <p class="text-muted" id="presentismo-pendientes-count">Selecciona una clase para listar a los alumnos.</p>
                                 </div>
                             </div>
                             <div class="table-container">
@@ -346,7 +346,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="tbody-presentismo-pendientes">
-                                        <tr><td colspan="4" class="text-center text-muted">Selecciona una sede arriba para comenzar a tomar asistencia.</td></tr>
+                                        <tr><td colspan="4" class="text-center text-muted">Selecciona una clase arriba para comenzar a tomar asistencia.</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -437,7 +437,7 @@
                                 <thead>
                                     <tr>
                                         <th>Alumno</th>
-                                        <th>Sede y Frecuencia</th>
+                                        <th>Clase y Frecuencia</th>
                                         <th>Detalle Cálculo</th>
                                         <th>Monto Neto</th>
                                         <th>Estado</th>
@@ -485,8 +485,8 @@
                         <div class="card">
                             <div class="card-header">
                                 <div class="card-header-title">
-                                    <h3>Ocupación e Ingresos por Sede</h3>
-                                    <p class="text-muted">Distribución de alumnos matriculados y facturación por sede en el ciclo activo.</p>
+                                    <h3>Ocupación e Ingresos por Clase</h3>
+                                    <p class="text-muted">Distribución de alumnos matriculados y facturación por clase en el ciclo activo.</p>
                                 </div>
                             </div>
                             <div style="position: relative; height: 260px; width: 100%;">
@@ -586,14 +586,14 @@
                         <div class="card" style="padding: 20px;">
                             <div class="card-header" style="padding-bottom: 12px; margin-bottom: 16px;">
                                 <div class="card-header-title">
-                                    <h3 style="font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">Detalle de Ingresos por Sede</h3>
+                                    <h3 style="font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">Detalle de Ingresos por Clase</h3>
                                 </div>
                             </div>
                             <div class="table-container">
                                 <table>
                                     <thead>
                                         <tr>
-                                            <th>Sede</th>
+                                            <th>Clase / Actividad</th>
                                             <th style="text-align: right;">Alumnos</th>
                                             <th style="text-align: right;">Recaudado Real</th>
                                         </tr>
@@ -636,14 +636,14 @@
     <div id="modal-sede" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-sede-title">Nueva Sede</h3>
+                <h3 id="modal-sede-title">Nueva Clase / Actividad</h3>
                 <span class="close-modal" id="close-modal-sede">&times;</span>
             </div>
             <form id="form-sede">
                 <input type="hidden" id="form-sede-id">
                 <div class="form-group">
-                    <label for="form-input-sede-nombre">Nombre de la Sede</label>
-                    <input type="text" id="form-input-sede-nombre" required placeholder="Ej: Glorietas">
+                    <label for="form-input-sede-nombre">Nombre de la Clase / Actividad</label>
+                    <input type="text" id="form-input-sede-nombre" required placeholder="Ej: Salsa Chicas / Zumba">
                 </div>
                 <div class="form-grid-3">
                     <div class="form-group">
@@ -690,7 +690,7 @@
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" id="btn-cancel-sede">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar Sede</button>
+                    <button type="submit" class="btn btn-primary">Guardar Clase</button>
                 </div>
             </form>
         </div>
@@ -749,7 +749,7 @@
                 </div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="form-input-alumno-sede">Sede</label>
+                        <label for="form-input-alumno-sede">Clase Principal</label>
                         <select id="form-input-alumno-sede" required>
                             <!-- Dinámico -->
                         </select>
@@ -775,6 +775,10 @@
                         <label for="form-input-alumno-clases">Pases Iniciales del Mes</label>
                         <input type="number" id="form-input-alumno-clases" required min="0" placeholder="Ej: 4 u 8">
                     </div>
+                </div>
+                <div class="form-group">
+                    <label for="form-input-alumno-notas">Notas / Actividades adicionales (Ej: Salsa Chicas, Zumba)</label>
+                    <input type="text" id="form-input-alumno-notas" placeholder="Ej: Salsa Chicas, Zumba o cualquier observación">
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" id="btn-cancel-alumno">Cancelar</button>
@@ -824,6 +828,6 @@
     </div>
 
     <!-- Script de Lógica -->
-    <script src="app.js?v=4.0.0"></script>
+    <script src="app.js?v=4.1.0"></script>
 </body>
 </html>

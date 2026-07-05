@@ -416,7 +416,7 @@ const modalSede = document.getElementById("modal-sede");
 const formSede = document.getElementById("form-sede");
 
 document.getElementById("btn-add-sede").addEventListener("click", () => {
-    document.getElementById("modal-sede-title").innerText = "Nueva Sede";
+    document.getElementById("modal-sede-title").innerText = "Nueva Clase / Actividad";
     formSede.reset();
     document.getElementById("form-sede-id").value = "";
     document.getElementById("form-input-sede-viajes").value = 2; // Valor por defecto
@@ -442,13 +442,13 @@ formSede.addEventListener("submit", (e) => {
         const index = db.sedes.findIndex(s => s.id === id);
         if (index !== -1) {
             db.sedes[index] = { id, nombre, precios: { 1: p1, 2: p2, 3: p3 }, alquiler, distancia, viajesSemanales };
-            showToast(`Sede "${nombre}" actualizada correctamente.`);
+            showToast(`Clase "${nombre}" actualizada correctamente.`);
         }
     } else {
         // Crear nueva
         const newId = "sede-" + Date.now();
         db.sedes.push({ id: newId, nombre, precios: { 1: p1, 2: p2, 3: p3 }, alquiler, distancia, viajesSemanales });
-        showToast(`Sede "${nombre}" agregada con éxito.`);
+        showToast(`Clase "${nombre}" agregada con éxito.`);
     }
     
     saveDB();
@@ -460,7 +460,7 @@ function editSede(id) {
     const sede = db.sedes.find(s => s.id === id);
     if (!sede) return;
     
-    document.getElementById("modal-sede-title").innerText = "Editar Sede";
+    document.getElementById("modal-sede-title").innerText = "Editar Clase / Actividad";
     document.getElementById("form-sede-id").value = sede.id;
     document.getElementById("form-input-sede-nombre").value = sede.nombre;
     document.getElementById("form-input-sede-precio1").value = sede.precios[1];
@@ -477,11 +477,11 @@ function deleteSede(id) {
     const sede = db.sedes.find(s => s.id === id);
     if (!sede) return;
     
-    if (confirm(`¿Estás seguro de que deseas eliminar la sede "${sede.nombre}"? Esto afectará los cálculos logísticos.`)) {
+    if (confirm(`¿Estás seguro de que deseas eliminar la clase "${sede.nombre}"? Esto afectará los cálculos logísticos.`)) {
         db.sedes = db.sedes.filter(s => s.id !== id);
         saveDB();
         renderSedes();
-        showToast(`Sede "${sede.nombre}" eliminada.`, "danger");
+        showToast(`Clase "${sede.nombre}" eliminada.`, "danger");
     }
 }
 
@@ -489,7 +489,7 @@ function editDistancia(id) {
     const sede = db.sedes.find(s => s.id === id);
     if (!sede) return;
     
-    const nuevaDist = prompt(`Introduce la distancia de ida en km para ${sede.nombre}:`, sede.distancia);
+    const nuevaDist = prompt(`Introduce la distancia de ida en km para la clase ${sede.nombre}:`, sede.distancia);
     if (nuevaDist !== null) {
         const val = parseFloat(nuevaDist);
         if (!isNaN(val) && val >= 0) {
@@ -644,14 +644,14 @@ function populateAlumnoDropdowns() {
     const currentFormDesc = formDescuento.value;
     
     // 1. Selector de filtro
-    filterSede.innerHTML = '<option value="">Todas las sedes</option>';
+    filterSede.innerHTML = '<option value="">Todas las clases</option>';
     db.sedes.forEach(s => {
         filterSede.innerHTML += `<option value="${s.id}">${s.nombre}</option>`;
     });
     filterSede.value = currentFilter;
     
     // 2. Selector en formulario (sede)
-    formSede.innerHTML = '<option value="" disabled selected>Selecciona una sede</option>';
+    formSede.innerHTML = '<option value="" disabled selected>Selecciona una clase</option>';
     db.sedes.forEach(s => {
         formSede.innerHTML += `<option value="${s.id}">${s.nombre}</option>`;
     });
@@ -706,16 +706,23 @@ function renderAlumnos() {
 
     alumnosFiltrados.forEach(al => {
         const sedeObj = db.sedes.find(s => s.id === al.sedeId);
-        const sedeNombre = sedeObj ? sedeObj.nombre : "Sede Desconocida";
+        const sedeNombre = sedeObj ? sedeObj.nombre : "Clase Desconocida";
         
         const descObj = db.descuentos.find(d => d.id === al.descuentoId);
         const descBadge = descObj 
             ? `<span class="discount-tag">${descObj.nombre}</span>` 
             : `<span class="text-muted text-sm">-</span>`;
             
+        const notasHtml = al.notas 
+            ? `<div class="text-muted text-xs" style="font-weight: 400; margin-top: 4px; font-style: italic;"><i class="fa-solid fa-note-sticky" style="margin-right: 4px; font-size: 10px;"></i>${al.notas}</div>` 
+            : "";
+            
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td style="font-weight: 600; color: var(--text-primary);">${al.nombre}</td>
+            <td style="font-weight: 600; color: var(--text-primary);">
+                ${al.nombre}
+                ${notasHtml}
+            </td>
             <td>
                 <a href="https://wa.me/${al.telefono}" target="_blank" style="color: var(--success-light); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="Enviar WhatsApp">
                     <i class="fa-brands fa-whatsapp" style="font-size: 1.1rem; margin-right: 4px;"></i> ${al.telefono}
@@ -779,9 +786,10 @@ function initAlumnosListeners() {
         const frecuencia = parseInt(selectFrecuencia.value);
         const descuentoId = document.getElementById("form-input-alumno-descuento").value;
         const clasesTotales = parseInt(inputClases.value) || 8;
+        const notas = document.getElementById("form-input-alumno-notas").value.trim();
         
         if (!sedeId) {
-            showToast("Debes seleccionar una sede válida.", "danger");
+            showToast("Debes seleccionar una clase válida.", "danger");
             return;
         }
         
@@ -795,7 +803,7 @@ function initAlumnosListeners() {
                 if (clasesTotales !== viejo.clasesTotales) {
                     clasesDisponibles = clasesTotales;
                 }
-                db.alumnos[index] = { id, nombre, telefono, sedeId, frecuencia, descuentoId, clasesDisponibles, clasesTotales };
+                db.alumnos[index] = { id, nombre, telefono, sedeId, frecuencia, descuentoId, clasesDisponibles, clasesTotales, notas };
                 showToast(`Alumno "${nombre}" actualizado.`);
             }
         } else {
@@ -809,7 +817,8 @@ function initAlumnosListeners() {
                 frecuencia,
                 descuentoId,
                 clasesDisponibles: clasesTotales,
-                clasesTotales
+                clasesTotales,
+                notas
             });
             showToast(`Alumno "${nombre}" registrado.`);
         }
@@ -843,6 +852,7 @@ function editAlumno(id) {
     document.getElementById("form-input-alumno-frecuencia").value = al.frecuencia;
     document.getElementById("form-input-alumno-descuento").value = al.descuentoId;
     document.getElementById("form-input-alumno-clases").value = al.clasesTotales;
+    document.getElementById("form-input-alumno-notas").value = al.notas || "";
     
     openModal(modalAlumno);
 }
@@ -945,7 +955,7 @@ function populatePresentismoSedeDropdown() {
     if (!selectSede) return;
     const currentVal = selectSede.value;
     
-    selectSede.innerHTML = '<option value="" disabled selected>Selecciona una sede</option>';
+    selectSede.innerHTML = '<option value="" disabled selected>Selecciona una clase</option>';
     db.sedes.forEach(s => {
         selectSede.innerHTML += `<option value="${s.id}">${s.nombre}</option>`;
     });
@@ -979,10 +989,10 @@ function renderPresentismo() {
     const tbodyAusentes = document.getElementById("tbody-presentismo-ausentes");
     
     if (!selectSede || !selectSede.value) {
-        tbodyPendientes.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Selecciona una sede arriba para comenzar a tomar asistencia.</td></tr>';
+        tbodyPendientes.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Selecciona una clase arriba para comenzar a tomar asistencia.</td></tr>';
         listAsistieron.innerHTML = '<p class="text-muted text-center text-sm mt-3">Nadie ha sido registrado en esta clase todavía.</p>';
-        tbodyAusentes.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Selecciona una sede arriba para ver el seguimiento de ausencias.</td></tr>';
-        document.getElementById("presentismo-pendientes-count").innerText = "Selecciona una sede.";
+        tbodyAusentes.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Selecciona una clase arriba para ver el seguimiento de ausencias.</td></tr>';
+        document.getElementById("presentismo-pendientes-count").innerText = "Selecciona una clase.";
         document.getElementById("presentismo-asistieron-count").innerText = "0 alumnos registrados hoy.";
         return;
     }
@@ -1319,7 +1329,7 @@ function renderLiquidaciones() {
             : `${formatCurrency(liq.montoBase)}`;
             
         // Enlace de WhatsApp con el desglose de cuota
-        const wsMsg = encodeURIComponent(`Hola ${al.nombre}! Te compartimos el detalle de tu cuota mensual para el ciclo de ${mesLabel}:\n\n- Sede: ${sedeNombre}\n- Frecuencia: ${al.frecuencia} clase(s) por semana\n- Monto Base: ${formatCurrency(liq.montoBase)}\n${liq.descuentoMonto > 0 ? `- Descuento: ${formatCurrency(liq.descuentoMonto)} (${liq.descuentoNombre})\n` : ""}- Total Neto: *${formatCurrency(liq.montoNeto)}*\n\nPodés realizar el pago por transferencia bancaria y enviarnos el comprobante por este medio. ¡Muchas gracias! Baila con Wally.`);
+        const wsMsg = encodeURIComponent(`Hola ${al.nombre}! Te compartimos el detalle de tu cuota mensual para el ciclo de ${mesLabel}:\n\n- Clase: ${sedeNombre}\n- Frecuencia: ${al.frecuencia} clase(s) por semana\n- Monto Base: ${formatCurrency(liq.montoBase)}\n${liq.descuentoMonto > 0 ? `- Descuento: ${formatCurrency(liq.descuentoMonto)} (${liq.descuentoNombre})\n` : ""}- Total Neto: *${formatCurrency(liq.montoNeto)}*\n\nPodés realizar el pago por transferencia bancaria y enviarnos el comprobante por este medio. ¡Muchas gracias! Baila con Wally.`);
         
         const whatsappBtn = `
             <a href="https://wa.me/${al.telefono}?text=${wsMsg}" target="_blank" class="btn btn-secondary btn-sm" style="color:var(--accent-primary); border-color:rgba(255,107,0,0.3); padding:4px 8px; font-size:10px;">
@@ -1869,7 +1879,7 @@ MÉTRICAS OPERATIVAS:
 - Clases Dictadas / Asistencias: ${r.asistenciasMesCount}
 - Tasa de Asistencia General: ${r.tasaPresentismo}%
 
-DESGLOSE DE INGRESOS POR SEDE:
+DESGLOSE DE INGRESOS POR CLASE:
 ${sedesTexto}${line}
 Generado automáticamente por Wally CRM.`;
 
