@@ -412,6 +412,13 @@ select:focus {
     gap: 16px;
 }
 
+.logistics-settings-grid label {
+    min-height: 32px;
+    display: flex;
+    align-items: flex-end;
+    margin-bottom: 8px;
+}
+
 /* Botones con estilo angular de la web */
 .btn {
     display: inline-flex;
