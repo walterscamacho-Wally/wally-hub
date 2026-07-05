@@ -748,18 +748,20 @@ select:focus {
         height: auto;
         border-right: none;
         border-bottom: 1px solid var(--border-color);
-        padding: 20px;
-        flex-direction: row;
-        justify-content: space-between;
+        padding: 12px 16px 8px 16px;
+        flex-direction: column;
+        gap: 10px;
         align-items: center;
     }
     
     .brand {
         margin-bottom: 0;
+        padding-left: 0;
+        text-align: center;
     }
     
     .brand-logo-text {
-        font-size: 1.6rem;
+        font-size: 1.5rem;
     }
     
     .brand-logo-sub {
@@ -767,14 +769,21 @@ select:focus {
     }
     
     .nav-menu {
+        width: 100%;
         flex-direction: row;
-        gap: 4px;
+        justify-content: flex-start;
+        gap: 6px;
         overflow-x: auto;
-        padding-bottom: 4px;
+        padding-bottom: 6px;
+        scrollbar-width: none; /* Hide scrollbar Firefox */
+    }
+    
+    .nav-menu::-webkit-scrollbar {
+        display: none; /* Hide scrollbar Chrome/Safari */
     }
     
     .nav-item {
-        padding: 8px 12px;
+        padding: 6px 10px;
         font-size: 10px;
         white-space: nowrap;
         border-left: none;
@@ -783,6 +792,7 @@ select:focus {
     
     .nav-item.active {
         border-bottom-color: var(--accent-primary);
+        background-color: transparent;
     }
     
     .sidebar-footer {
@@ -802,6 +812,42 @@ select:focus {
     
     .form-grid {
         grid-template-columns: 1fr;
+    }
+    
+    /* Optimize buttons on mobile */
+    .btn {
+        padding: 8px 12px;
+        font-size: 11px;
+    }
+    .btn-sm {
+        padding: 6px 10px;
+        font-size: 10px;
+    }
+    
+    /* Optimize card headers on mobile */
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .card-header-title {
+        width: 100%;
+    }
+    .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+    
+    /* Optimize filter inputs stacking on mobile */
+    .filter-bar {
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+    }
+    .filter-bar > div, 
+    .filter-bar select {
+        width: 100% !important;
     }
 }
 
@@ -1003,6 +1049,51 @@ input[type="month"]:focus {
         grid-template-columns: 1fr;
     }
 }
+
+/* Form grid with 3 columns responsively stacking */
+.form-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 768px) {
+    .form-grid-3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Retention metrics responsive card */
+.grid-retencion {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    text-align: center;
+}
+
+.grid-retencion-item {
+    padding: 16px;
+}
+
+.grid-retencion-item.middle {
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+    .grid-retencion {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .grid-retencion-item.middle {
+        border-left: none;
+        border-right: none;
+        border-top: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+        padding: 20px 16px;
+    }
+}
+
 
 
 

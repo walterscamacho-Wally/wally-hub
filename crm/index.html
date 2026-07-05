@@ -11,7 +11,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- CSS Estilos -->
-    <link rel="stylesheet" href="style.css?v=3.5.0">
+    <link rel="stylesheet" href="style.css?v=3.6.0">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Supabase JS Client CDN -->
@@ -228,7 +228,7 @@
                 <!-- VIEW 2: ALUMNOS (Fase 2 - Carga de Datos y "Limpieza") -->
                 <section id="view-alumnos" class="view-section">
                     <!-- Estadísticas Rápidas -->
-                    <div class="logistics-settings-grid mb-4" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+                    <div class="logistics-settings-grid mb-4">
                         <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 16px;">
                             <div style="font-size: 24px; color: var(--accent-primary); background: rgba(255, 107, 0, 0.1); width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: var(--border-radius-md);"><i class="fa-solid fa-users"></i></div>
                             <div>
@@ -311,7 +311,7 @@
                                 <p class="text-muted">Selecciona la sede y la fecha de hoy para registrar las asistencias. Los pases se descontarán automáticamente.</p>
                             </div>
                         </div>
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 0;">
+                        <div class="form-grid" style="margin-bottom: 0;">
                             <div class="form-group">
                                 <label for="select-presentismo-sede">Selecciona la Sede de la Clase</label>
                                 <select id="select-presentismo-sede">
@@ -516,18 +516,18 @@
                                 <p class="text-muted">Seguimiento de asistencia general e inasistencias detectadas en el mes.</p>
                             </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; text-align: center;">
-                            <div style="padding: 16px;">
+                        <div class="grid-retencion">
+                            <div class="grid-retencion-item">
                                 <span class="text-muted text-sm" style="text-transform:uppercase; font-weight:700;">Asistencias Registradas</span>
                                 <h5 style="font-size: 32px; font-weight: 800; color: var(--accent-primary); font-family: var(--font-title); margin-top: 8px;" id="tablero-total-asistencias">0</h5>
                                 <p class="text-muted text-sm">Clases dictadas/tomadas este mes</p>
                             </div>
-                            <div style="padding: 16px; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color);">
+                            <div class="grid-retencion-item middle">
                                 <span class="text-muted text-sm" style="text-transform:uppercase; font-weight:700;">Tasa de Presentismo</span>
                                 <h5 style="font-size: 32px; font-weight: 800; color: var(--success); font-family: var(--font-title); margin-top: 8px;" id="tablero-tasa-presentismo">0%</h5>
                                 <p class="text-muted text-sm">Porcentaje de asistencia en clases programadas</p>
                             </div>
-                            <div style="padding: 16px;">
+                            <div class="grid-retencion-item">
                                 <span class="text-muted text-sm" style="text-transform:uppercase; font-weight:700;">Alumnos Inactivos (Ausencias)</span>
                                 <h5 style="font-size: 32px; font-weight: 800; color: var(--danger-light); font-family: var(--font-title); margin-top: 8px;" id="tablero-alumnos-inactivos">0</h5>
                                 <p class="text-muted text-sm">Alumnos con asistencia nula en el ciclo</p>
@@ -668,7 +668,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="form-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="form-grid-3">
                     <div class="form-group">
                         <label for="form-input-sede-alquiler">Alquiler Sala (Mes)</label>
                         <div class="input-prefix-container">
@@ -824,6 +824,6 @@
     </div>
 
     <!-- Script de Lógica -->
-    <script src="app.js?v=3.5.0"></script>
+    <script src="app.js?v=3.6.0"></script>
 </body>
 </html>
