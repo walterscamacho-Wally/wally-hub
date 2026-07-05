@@ -1346,10 +1346,28 @@ function populatePagoManualAlumnos() {
     const select = document.getElementById("form-input-pago-alumno");
     if (!select) return;
     select.innerHTML = '<option value="" disabled selected>Selecciona un alumno</option>';
-    const sortedAlumnos = [...db.alumnos].sort((a, b) => a.nombre.localeCompare(b.nombre));
-    sortedAlumnos.forEach(al => {
-        select.innerHTML += `<option value="${al.id}">${al.nombre}</option>`;
-    });
+    if (!db.alumnos || !Array.isArray(db.alumnos)) return;
+    
+    try {
+        const sortedAlumnos = [...db.alumnos].sort((a, b) => {
+            const nameA = String(a.nombre || "").trim();
+            const nameB = String(b.nombre || "").trim();
+            return nameA.localeCompare(nameB);
+        });
+        sortedAlumnos.forEach(al => {
+            if (al && al.id) {
+                const label = al.nombre || "Sin nombre";
+                select.innerHTML += `<option value="${al.id}">${label}</option>`;
+            }
+        });
+    } catch (err) {
+        console.error("Error populating manual payment alumnos:", err);
+        db.alumnos.forEach(al => {
+            if (al && al.id) {
+                select.innerHTML += `<option value="${al.id}">${al.nombre || "Sin nombre"}</option>`;
+            }
+        });
+    }
 }
 
 function deleteLiquidacion(id) {
