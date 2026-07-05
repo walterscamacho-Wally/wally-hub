@@ -613,7 +613,7 @@ select:focus {
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-lg);
     width: 95%;
-    max-width: 500px;
+    max-width: 580px;
     padding: 32px;
     box-shadow: var(--shadow-lg);
     transform: scale(0.97);
