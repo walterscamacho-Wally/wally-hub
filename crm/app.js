@@ -201,10 +201,10 @@ function formatKm(val) {
 
 // --- NAVEGACIÓN DE VISTAS (TABS) ---
 const VIEW_INFO = {
-    cimientos: { title: "Configuración de los Cimientos", subtitle: "Gestiona sedes, precios, descuentos y costos logísticos iniciales." },
-    alumnos: { title: "Fase 2: Carga de Datos y Limpieza", subtitle: "Importa tu team y define las clases mensuales asignadas." },
-    presentismo: { title: "Fase 3: Automatización y Asistencia", subtitle: "Marca las asistencias de tus alumnos y gestiona las alertas de pases." },
-    liquidacion: { title: "Fase 4: Cobros y Liquidación Automática", subtitle: "Calcula cobros del mes y visualiza las órdenes de pago." },
+    cimientos: { title: "Configuración de Clases y Precios", subtitle: "Gestiona clases, precios, descuentos y costos logísticos iniciales." },
+    alumnos: { title: "Gestión de Alumnos", subtitle: "Define la clase principal, frecuencia, pases y notas adicionales." },
+    presentismo: { title: "Control de Asistencias", subtitle: "Registra asistencias y controla el presentismo en tiempo real." },
+    liquidacion: { title: "Control de Cuotas y Pagos", subtitle: "Genera las cuotas mensuales y registra los pagos manuales o automáticos de tus alumnos." },
     tablero: { title: "Tablero Operativo de Control", subtitle: "Analiza el rendimiento general, la ocupación de salas y la rentabilidad." },
     reportes: { title: "Reportes Mensuales Operativos", subtitle: "Visualiza desgloses de ingresos, gastos mensuales y copia reportes listos para administración." }
 };
@@ -1204,6 +1204,75 @@ function initLiquidaciones() {
     if (btnGenerar) btnGenerar.addEventListener("click", generarLiquidacionesCiclo);
     if (searchLiq) searchLiq.addEventListener("input", renderLiquidaciones);
     if (filterEstado) filterEstado.addEventListener("change", renderLiquidaciones);
+
+    // Modal de Pago Manual
+    const btnAddPagoManual = document.getElementById("btn-add-pago-manual");
+    const modalPagoManual = document.getElementById("modal-pago-manual");
+    const formPagoManual = document.getElementById("form-pago-manual");
+    
+    if (btnAddPagoManual && modalPagoManual && formPagoManual) {
+        btnAddPagoManual.addEventListener("click", () => {
+            formPagoManual.reset();
+            populatePagoManualAlumnos();
+            openModal(modalPagoManual);
+        });
+        
+        document.getElementById("close-modal-pago-manual").addEventListener("click", () => closeModal(modalPagoManual));
+        document.getElementById("btn-cancel-pago-manual").addEventListener("click", () => closeModal(modalPagoManual));
+        
+        formPagoManual.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const alumnoId = document.getElementById("form-input-pago-alumno").value;
+            const concepto = document.getElementById("form-input-pago-concepto").value.trim();
+            const monto = parseFloat(document.getElementById("form-input-pago-monto").value) || 0;
+            const estado = document.getElementById("form-input-pago-estado").value;
+            const selectedMonth = selectMes.value;
+            
+            if (!alumnoId) {
+                showToast("Debes seleccionar un alumno.", "danger");
+                return;
+            }
+            
+            const newLiq = {
+                id: "liq-manual-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+                alumnoId: alumnoId,
+                mes: selectedMonth,
+                montoBase: monto,
+                descuentoMonto: 0,
+                montoNeto: monto,
+                descuentoNombre: concepto,
+                estado: estado,
+                esManual: true
+            };
+            
+            db.liquidaciones.push(newLiq);
+            saveDB();
+            renderLiquidaciones();
+            renderTablero();
+            closeModal(modalPagoManual);
+            showToast(`Pago de ${formatCurrency(monto)} registrado correctamente.`);
+        });
+    }
+}
+
+function populatePagoManualAlumnos() {
+    const select = document.getElementById("form-input-pago-alumno");
+    if (!select) return;
+    select.innerHTML = '<option value="" disabled selected>Selecciona un alumno</option>';
+    const sortedAlumnos = [...db.alumnos].sort((a, b) => a.nombre.localeCompare(b.nombre));
+    sortedAlumnos.forEach(al => {
+        select.innerHTML += `<option value="${al.id}">${al.nombre}</option>`;
+    });
+}
+
+function deleteLiquidacion(id) {
+    if (confirm("¿Estás seguro de que deseas eliminar este pago manual?")) {
+        db.liquidaciones = db.liquidaciones.filter(l => l.id !== id);
+        saveDB();
+        renderLiquidaciones();
+        renderTablero();
+        showToast("Pago manual eliminado.", "danger");
+    }
 }
 
 function generarLiquidacionesCiclo() {
@@ -1323,13 +1392,23 @@ function renderLiquidaciones() {
             ? `<button class="btn btn-danger-outline btn-sm" onclick="toggleEstadoLiquidacion('${liq.id}')" style="padding:4px 8px; font-size:10px;"><i class="fa-solid fa-rotate-left"></i> Revertir</button>`
             : `<button class="btn btn-primary btn-sm" onclick="toggleEstadoLiquidacion('${liq.id}')" style="padding:4px 8px; font-size:10px;"><i class="fa-solid fa-circle-check"></i> Cobrar</button>`;
             
-        // Detalle de descuento descriptivo
-        const descTexto = liq.descuentoMonto > 0 
-            ? `${formatCurrency(liq.montoBase)} - ${formatCurrency(liq.descuentoMonto)} <span class="text-muted" style="font-size:10px;">(${liq.descuentoNombre})</span>`
-            : `${formatCurrency(liq.montoBase)}`;
+        const isManual = liq.esManual || liq.id.startsWith("liq-manual-");
+        
+        // Detalle de descuento o concepto descriptivo
+        const descTexto = isManual
+            ? `<span class="discount-tag" style="background-color:rgba(255,107,0,0.1); color:var(--accent-secondary); border-color:rgba(255,107,0,0.25);">${liq.descuentoNombre}</span>`
+            : liq.descuentoMonto > 0 
+                ? `${formatCurrency(liq.montoBase)} - ${formatCurrency(liq.descuentoMonto)} <span class="text-muted" style="font-size:10px;">(${liq.descuentoNombre})</span>`
+                : `${formatCurrency(liq.montoBase)}`;
+                
+        const claseColTexto = isManual
+            ? '<span class="text-muted" style="font-style:italic;">Pago Adicional</span>'
+            : `${sedeNombre} <span class="text-muted" style="font-size:11px;">(${al.frecuencia} vez/sem)</span>`;
             
         // Enlace de WhatsApp con el desglose de cuota
-        const wsMsg = encodeURIComponent(`Hola ${al.nombre}! Te compartimos el detalle de tu cuota mensual para el ciclo de ${mesLabel}:\n\n- Clase: ${sedeNombre}\n- Frecuencia: ${al.frecuencia} clase(s) por semana\n- Monto Base: ${formatCurrency(liq.montoBase)}\n${liq.descuentoMonto > 0 ? `- Descuento: ${formatCurrency(liq.descuentoMonto)} (${liq.descuentoNombre})\n` : ""}- Total Neto: *${formatCurrency(liq.montoNeto)}*\n\nPodés realizar el pago por transferencia bancaria y enviarnos el comprobante por este medio. ¡Muchas gracias! Baila con Wally.`);
+        const wsMsg = isManual
+            ? encodeURIComponent(`Hola ${al.nombre}! Te compartimos el detalle de tu pago adicional para el ciclo de ${mesLabel}:\n\n- Concepto: ${liq.descuentoNombre}\n- Monto: *${formatCurrency(liq.montoNeto)}*\n\nPodés realizar el pago por transferencia bancaria y enviarnos el comprobante por este medio. ¡Muchas gracias! Baila con Wally.`)
+            : encodeURIComponent(`Hola ${al.nombre}! Te compartimos el detalle de tu cuota mensual para el ciclo de ${mesLabel}:\n\n- Clase: ${sedeNombre}\n- Frecuencia: ${al.frecuencia} clase(s) por semana\n- Monto Base: ${formatCurrency(liq.montoBase)}\n${liq.descuentoMonto > 0 ? `- Descuento: ${formatCurrency(liq.descuentoMonto)} (${liq.descuentoNombre})\n` : ""}- Total Neto: *${formatCurrency(liq.montoNeto)}*\n\nPodés realizar el pago por transferencia bancaria y enviarnos el comprobante por este medio. ¡Muchas gracias! Baila con Wally.`);
         
         const whatsappBtn = `
             <a href="https://wa.me/${al.telefono}?text=${wsMsg}" target="_blank" class="btn btn-secondary btn-sm" style="color:var(--accent-primary); border-color:rgba(255,107,0,0.3); padding:4px 8px; font-size:10px;">
@@ -1337,14 +1416,23 @@ function renderLiquidaciones() {
             </a>
         `;
         
+        const deleteBtn = isManual
+            ? `<button class="btn btn-danger-outline btn-sm btn-icon-only" onclick="deleteLiquidacion('${liq.id}')" style="height:26px; width:26px; padding:0; font-size:10px; margin-left:4px;" title="Eliminar Pago Manual"><i class="fa-solid fa-trash-can"></i></button>`
+            : '';
+        
         tr.innerHTML = `
             <td style="font-weight:600; color:var(--text-primary);">${al.nombre}</td>
-            <td>${sedeNombre} <span class="text-muted" style="font-size:11px;">(${al.frecuencia} vez/sem)</span></td>
+            <td>${claseColTexto}</td>
             <td>${descTexto}</td>
             <td style="font-weight:700; color:var(--text-primary);">${formatCurrency(liq.montoNeto)}</td>
             <td>${badgeEstado}</td>
             <td>${btnToggle}</td>
-            <td>${whatsappBtn}</td>
+            <td>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    ${whatsappBtn}
+                    ${deleteBtn}
+                </div>
+            </td>
         `;
         tbody.appendChild(tr);
     });

@@ -11,7 +11,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- CSS Estilos -->
-    <link rel="stylesheet" href="style.css?v=4.1.0">
+    <link rel="stylesheet" href="style.css?v=4.2.0">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Supabase JS Client CDN -->
@@ -42,7 +42,7 @@
                 </a>
                 <a href="#" class="nav-item" data-tab="liquidacion">
                     <span class="icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
-                    <span>Liquidación</span>
+                    <span>Cuotas y Pagos</span>
                 </a>
                 <a href="#" class="nav-item" data-tab="tablero">
                     <span class="icon"><i class="fa-solid fa-chart-simple"></i></span>
@@ -422,7 +422,10 @@
                                 <p class="text-muted" id="liquidaciones-count">No hay órdenes de pago en este ciclo.</p>
                             </div>
                             <!-- Filtros y Buscador de órdenes -->
-                            <div style="display: flex; gap: 12px; width: auto; flex-wrap: wrap;">
+                            <div style="display: flex; gap: 12px; width: auto; flex-wrap: wrap; align-items: center;">
+                                <button id="btn-add-pago-manual" class="btn btn-primary btn-sm" style="height: 32px; padding: 0 12px; font-size: 11px;">
+                                    <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> Registrar Pago Manual
+                                </button>
                                 <input type="text" id="input-search-liquidaciones" placeholder="Buscar alumno..." style="width: 180px; padding: 6px 12px; font-size:12px; height:32px;">
                                 <select id="select-filter-liquidacion-estado" style="width: 140px; padding: 6px 12px; font-size:12px; height:32px;">
                                     <option value="">Todos los estados</option>
@@ -786,6 +789,46 @@
                 </div>
             </form>
         </div>
+    <!-- MODAL: REGISTRAR PAGO MANUAL / ADICIONAL -->
+    <div id="modal-pago-manual" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Registrar Pago Manual / Adicional</h3>
+                <span class="close-modal" id="close-modal-pago-manual">&times;</span>
+            </div>
+            <form id="form-pago-manual">
+                <div class="form-group">
+                    <label for="form-input-pago-alumno">Selecciona el Alumno</label>
+                    <select id="form-input-pago-alumno" required>
+                        <!-- Carga dinámica de alumnos -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="form-input-pago-concepto">Concepto / Detalle</label>
+                    <input type="text" id="form-input-pago-concepto" required placeholder="Ej: Inscripción, Clase Extra, Cuota Especial, Uniforme">
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="form-input-pago-monto">Monto ($)</label>
+                        <div class="input-prefix-container">
+                            <span class="input-prefix">$</span>
+                            <input type="number" id="form-input-pago-monto" required min="0" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-input-pago-estado">Estado del Pago</label>
+                        <select id="form-input-pago-estado" required>
+                            <option value="Pagado" selected>Pagado</option>
+                            <option value="Pendiente">Pendiente</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-pago-manual">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Registrar Pago</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- SCREEN DE BLOQUEO / INICIO DE SESIÓN -->
@@ -828,6 +871,6 @@
     </div>
 
     <!-- Script de Lógica -->
-    <script src="app.js?v=4.1.0"></script>
+    <script src="app.js?v=4.2.0"></script>
 </body>
 </html>
