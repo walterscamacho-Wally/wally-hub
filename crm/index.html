@@ -11,7 +11,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- CSS Estilos -->
-    <link rel="stylesheet" href="style.css?v=4.11.0">
+    <link rel="stylesheet" href="style.css?v=4.12.0">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Supabase JS Client CDN -->
@@ -919,8 +919,8 @@
     </div>
 
     <!-- SCREEN DE BLOQUEO / INICIO DE SESIÓN -->
-    <div id="w-gatekeeper" class="w-gatekeeper" style="display: flex;">
-        <div class="auth-card">
+    <div id="w-gatekeeper" class="w-gatekeeper" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0a0a0a; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 10000; align-items: center; justify-content: center; padding: 20px;">
+        <div class="auth-card" style="background: #111111; border: 1px solid rgba(255, 107, 0, 0.15); border-radius: 8px; width: 100%; max-width: 400px; padding: 40px 30px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 50px rgba(255, 107, 0, 0.05); position: relative; overflow: hidden;">
             <div class="auth-logo">
                 <h1 class="brand-logo-text" style="font-size: 2.2rem; text-align: center; margin-bottom: 5px; font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px;">BAILA CON <span style="color: var(--accent-primary);">WALLY</span></h1>
                 <span class="brand-logo-sub" style="font-size: 0.75rem; text-align: center; letter-spacing: 2px; display: block; margin-bottom: 20px; text-transform: uppercase; color: var(--text-secondary);">CRM & Operaciones</span>
@@ -958,6 +958,6 @@
     </div>
 
     <!-- Script de Lógica -->
-    <script src="app.js?v=4.11.0"></script>
+    <script src="app.js?v=4.12.0"></script>
 </body>
 </html>
