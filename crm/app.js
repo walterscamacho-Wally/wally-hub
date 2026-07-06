@@ -1,4 +1,7 @@
 /* --- LÓGICA DE CONTROL DEL CRM "BAILA CON WALLY" --- */
+window.addEventListener("error", (event) => {
+    alert("CRM JS Error:\n" + event.message + "\nEn: " + (event.filename ? event.filename.split('/').pop() : 'unknown') + " línea " + event.lineno);
+});
 
 
 // --- DATOS INICIALES (SEMILLA) ---
@@ -1260,10 +1263,14 @@ function initLiquidaciones() {
     
     if (btnAddPagoManual && modalPagoManual && formPagoManual) {
         btnAddPagoManual.addEventListener("click", () => {
-            formPagoManual.reset();
-            if (groupPagoMetodo) groupPagoMetodo.style.display = "block"; // Mostrar por defecto ya que "Pagado" está seleccionado
-            populatePagoManualAlumnos();
-            openModal(modalPagoManual);
+            try {
+                formPagoManual.reset();
+                if (groupPagoMetodo) groupPagoMetodo.style.display = "block"; // Mostrar por defecto ya que "Pagado" está seleccionado
+                populatePagoManualAlumnos();
+                openModal(modalPagoManual);
+            } catch (err) {
+                alert("Error al abrir modal de pago manual:\n" + err.message + "\nStack:\n" + err.stack);
+            }
         });
         
         const closeBtn = document.getElementById("close-modal-pago-manual");
