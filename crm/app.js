@@ -2265,3 +2265,16 @@ if (document.readyState === "loading") {
 } else {
     initializeApp();
 }
+
+// Exponer funciones globales para los manejadores onclick en HTML
+window.toggleEstadoLiquidacion = toggleEstadoLiquidacion;
+window.deleteLiquidacion = deleteLiquidacion;
+window.editAlumno = editAlumno;
+window.deleteAlumno = deleteAlumno;
+window.marcarPresente = marcarPresente;
+window.deshacerAsistencia = deshacerAsistencia;
+window.editSede = editSede;
+window.deleteSede = deleteSede;
+window.editDescuento = editDescuento;
+window.deleteDescuento = deleteDescuento;
+window.editDistancia = editDistancia;
