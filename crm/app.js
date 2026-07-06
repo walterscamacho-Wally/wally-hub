@@ -580,11 +580,23 @@ const modalAlumno = document.getElementById("modal-alumno");
 const formAlumno = document.getElementById("form-alumno");
 
 function openModal(modal) {
+    if (!modal) {
+        console.error("openModal error: modal element is null or undefined");
+        return;
+    }
+    console.log("--> openModal triggered for:", modal.id, modal);
     modal.classList.add("show");
+    console.log("--> modal classes after add:", modal.className);
 }
 
 function closeModal(modal) {
+    if (!modal) {
+        console.error("closeModal error: modal element is null or undefined");
+        return;
+    }
+    console.log("--> closeModal triggered for:", modal.id);
     modal.classList.remove("show");
+    console.log("--> modal classes after remove:", modal.className);
 }
 
 // Cerrar modales si se hace clic fuera del contenido
@@ -592,6 +604,11 @@ window.addEventListener("click", (e) => {
     if (e.target === modalSede) closeModal(modalSede);
     if (e.target === modalDescuento) closeModal(modalDescuento);
     if (e.target === modalAlumno) closeModal(modalAlumno);
+    
+    const modalPagoManual = document.getElementById("modal-pago-manual");
+    const modalCobrar = document.getElementById("modal-cobrar-cuota");
+    if (e.target === modalPagoManual) closeModal(modalPagoManual);
+    if (e.target === modalCobrar) closeModal(modalCobrar);
 });
 
 // --- LÓGICA DE LA FASE 2: GESTIÓN DE ALUMNOS ---
