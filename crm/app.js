@@ -1890,6 +1890,7 @@ function initAuth() {
             if (error) throw error;
         } catch (e) {
             console.error("Error al iniciar sesión con Google:", e);
+            alert("Error al iniciar sesión con Google:\n" + (e.message || e) + (e.stack ? "\nStack:\n" + e.stack : ""));
             showToast("Error de conexión con Google", "danger");
         }
     });
