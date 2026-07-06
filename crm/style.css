@@ -860,7 +860,7 @@ select:focus {
 }
 
 /* --- SCREEN DE BLOQUEO / INICIO DE SESIÓN --- */
-.auth-overlay {
+.w-gatekeeper {
     position: fixed;
     top: 0;
     left: 0;

@@ -1936,7 +1936,8 @@ function initAuth() {
         console.log("Auth event:", event, session);
         if (session) {
             currentUser = session.user;
-            document.getElementById("auth-overlay").style.display = "none";
+            const gate = document.getElementById("w-gatekeeper");
+            if (gate) gate.style.display = "none";
             document.getElementById("btn-logout").style.display = "block";
             const dot = document.getElementById("auth-status-dot");
             if (dot) dot.style.backgroundColor = "var(--success-color)";
@@ -1947,7 +1948,8 @@ function initAuth() {
             await pullFromCloud();
         } else {
             currentUser = null;
-            document.getElementById("auth-overlay").style.display = "flex";
+            const gate = document.getElementById("w-gatekeeper");
+            if (gate) gate.style.display = "flex";
             document.getElementById("btn-logout").style.display = "none";
             const dot = document.getElementById("auth-status-dot");
             if (dot) dot.style.backgroundColor = "var(--danger-light)";
