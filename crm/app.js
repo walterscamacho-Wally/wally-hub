@@ -1934,9 +1934,9 @@ function initAuth() {
     // Escuchar estado de autenticación
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
         console.log("Auth event:", event, session);
+        const gate = document.getElementById("w-gatekeeper") || document.getElementById("auth-overlay");
         if (session) {
             currentUser = session.user;
-            const gate = document.getElementById("w-gatekeeper");
             if (gate) gate.style.display = "none";
             document.getElementById("btn-logout").style.display = "block";
             const dot = document.getElementById("auth-status-dot");
@@ -1948,7 +1948,6 @@ function initAuth() {
             await pullFromCloud();
         } else {
             currentUser = null;
-            const gate = document.getElementById("w-gatekeeper");
             if (gate) gate.style.display = "flex";
             document.getElementById("btn-logout").style.display = "none";
             const dot = document.getElementById("auth-status-dot");
