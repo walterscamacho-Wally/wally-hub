@@ -1611,45 +1611,59 @@ function renderLiquidaciones() {
 }
 
 function toggleEstadoLiquidacion(id) {
-    const liq = db.liquidaciones.find(l => l.id === id);
-    if (!liq) return;
-    
-    const al = db.alumnos.find(a => a.id === liq.alumnoId);
-    const alNombre = al ? al.nombre : "Alumno Desconocido";
-    
-    if (liq.estado === "Pagado") {
-        // Revertir a pendiente directamente (se borra el método de pago)
-        liq.estado = "Pendiente";
-        delete liq.metodoPago;
-        saveDB();
-        renderLiquidaciones();
-        renderTablero();
-        showToast(`Pago revertido para ${alNombre}.`, "warning");
-    } else {
-        // Abrir modal para elegir método de pago
-        const isManual = liq.esManual || liq.id.startsWith("liq-manual-");
-        let conceptoText = "";
-        if (isManual) {
-            conceptoText = liq.descuentoNombre;
-        } else if (al) {
-            const sede = db.sedes.find(s => s.id === al.sedeId);
-            conceptoText = sede ? sede.nombre : "Clase Principal";
-            if (al.sedeExtraId) {
-                const SedeExtra = db.sedes.find(s => s.id === al.sedeExtraId);
-                if (SedeExtra) {
-                    conceptoText += ` + ${SedeExtra.nombre}`;
+    try {
+        const liq = db.liquidaciones.find(l => l.id === id);
+        if (!liq) return;
+        
+        const al = db.alumnos.find(a => a.id === liq.alumnoId);
+        const alNombre = al ? al.nombre : "Alumno Desconocido";
+        
+        if (liq.estado === "Pagado") {
+            // Revertir a pendiente directamente (se borra el método de pago)
+            liq.estado = "Pendiente";
+            delete liq.metodoPago;
+            saveDB();
+            renderLiquidaciones();
+            renderTablero();
+            showToast(`Pago revertido para ${alNombre}.`, "warning");
+        } else {
+            // Abrir modal para elegir método de pago
+            const isManual = liq.esManual || liq.id.startsWith("liq-manual-");
+            let conceptoText = "";
+            if (isManual) {
+                conceptoText = liq.descuentoNombre;
+            } else if (al) {
+                const sede = db.sedes.find(s => s.id === al.sedeId);
+                conceptoText = sede ? sede.nombre : "Clase Principal";
+                if (al.sedeExtraId) {
+                    const SedeExtra = db.sedes.find(s => s.id === al.sedeExtraId);
+                    if (SedeExtra) {
+                        conceptoText += ` + ${SedeExtra.nombre}`;
+                    }
                 }
             }
+            
+            const elId = document.getElementById("form-cobrar-liq-id");
+            const elNombre = document.getElementById("cobrar-alumno-nombre");
+            const elConcepto = document.getElementById("cobrar-concepto");
+            const elMonto = document.getElementById("cobrar-monto");
+            const elMetodo = document.getElementById("form-cobrar-metodo");
+            
+            if (elId) elId.value = liq.id;
+            if (elNombre) elNombre.innerText = alNombre;
+            if (elConcepto) elConcepto.innerText = conceptoText || "Cobranza de clase";
+            if (elMonto) elMonto.innerText = formatCurrency(liq.montoNeto);
+            if (elMetodo) elMetodo.value = "Transferencia"; // Valor inicial por defecto
+            
+            const modalCobrar = document.getElementById("modal-cobrar-cuota");
+            if (modalCobrar) {
+                openModal(modalCobrar);
+            } else {
+                alert("Error: No se encontró el modal-cobrar-cuota en la página.");
+            }
         }
-        
-        document.getElementById("form-cobrar-liq-id").value = liq.id;
-        document.getElementById("cobrar-alumno-nombre").innerText = alNombre;
-        document.getElementById("cobrar-concepto").innerText = conceptoText || "Cobranza de clase";
-        document.getElementById("cobrar-monto").innerText = formatCurrency(liq.montoNeto);
-        document.getElementById("form-cobrar-metodo").value = "Transferencia"; // Valor inicial por defecto
-        
-        const modalCobrar = document.getElementById("modal-cobrar-cuota");
-        openModal(modalCobrar);
+    } catch (err) {
+        alert("Error en toggleEstadoLiquidacion:\n" + err.message + "\nStack:\n" + err.stack);
     }
 }
 
