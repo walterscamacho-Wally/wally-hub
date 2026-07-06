@@ -219,20 +219,24 @@ function initNavigation() {
     const viewSubtitle = document.getElementById("view-subtitle");
 
     navItems.forEach(item => {
+        const tabId = item.getAttribute("data-tab");
+        if (!tabId) return; // Enlaces sin data-tab (como Volver al Hub) no se interceptan y navegan normal
+        
         item.addEventListener("click", (e) => {
             e.preventDefault();
-            const tabId = item.getAttribute("data-tab");
             
             navItems.forEach(nav => nav.classList.remove("active"));
             sections.forEach(sec => sec.classList.remove("active"));
             
             item.classList.add("active");
-            document.getElementById(`view-${tabId}`).classList.add("active");
+            
+            const targetSec = document.getElementById(`view-${tabId}`);
+            if (targetSec) targetSec.classList.add("active");
             
             // Actualizar títulos
             if (VIEW_INFO[tabId]) {
-                viewTitle.innerText = VIEW_INFO[tabId].title;
-                viewSubtitle.innerText = VIEW_INFO[tabId].subtitle;
+                if (viewTitle) viewTitle.innerText = VIEW_INFO[tabId].title;
+                if (viewSubtitle) viewSubtitle.innerText = VIEW_INFO[tabId].subtitle;
             }
             
             // Refresh views upon activation
