@@ -44,6 +44,10 @@
                     <span class="icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
                     <span>Cuotas y Pagos</span>
                 </a>
+                <a href="#" class="nav-item" data-tab="tienda">
+                    <span class="icon"><i class="fa-solid fa-shirt"></i></span>
+                    <span>Remeras y Buzos</span>
+                </a>
                 <a href="#" class="nav-item" data-tab="tablero">
                     <span class="icon"><i class="fa-solid fa-chart-simple"></i></span>
                     <span>Tablero</span>
@@ -654,6 +658,77 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- VIEW: TIENDA (Remeras y Buzos) -->
+                <section id="view-tienda" class="view-section">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <div>
+                            <h2 style="font-family: var(--font-title); font-size: 28px; letter-spacing: 1px;">Venta de Remeras y Buzos</h2>
+                            <p class="text-muted" style="font-size: 13px;">Registra y administra los pedidos de indumentaria de la academia.</p>
+                        </div>
+                        <button class="btn btn-primary" id="btn-add-venta">
+                            <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> Registrar Venta
+                        </button>
+                    </div>
+                    
+                    <div class="grid-kpi" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 24px; gap: 16px;">
+                        <div class="card" style="padding: 16px; border-left: 4px solid var(--accent-primary);">
+                            <p class="text-muted text-sm" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Ventas Totales</p>
+                            <h4 id="tienda-monto-ventas" style="font-size: 24px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px;">$0</h4>
+                            <span class="text-muted text-sm" id="tienda-sub-ventas">0 prendas vendidas</span>
+                        </div>
+                        <div class="card" style="padding: 16px; border-left: 4px solid var(--danger-light);">
+                            <p class="text-muted text-sm" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Costo Total</p>
+                            <h4 id="tienda-monto-costos" style="font-size: 24px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px;">$0</h4>
+                            <span class="text-muted text-sm">Inversión en fábrica</span>
+                        </div>
+                        <div class="card" style="padding: 16px; border-left: 4px solid var(--success-light);">
+                            <p class="text-muted text-sm" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Ganancia Neta</p>
+                            <h4 id="tienda-monto-ganancias" style="font-size: 24px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px;">$0</h4>
+                            <span class="text-muted text-sm">Rentabilidad</span>
+                        </div>
+                        <div class="card" style="padding: 16px; border-left: 4px solid var(--warning);">
+                            <p class="text-muted text-sm" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Pendientes de Entrega</p>
+                            <h4 id="tienda-count-pendientes" style="font-size: 24px; font-weight: 800; margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px;">0</h4>
+                            <span class="text-muted text-sm">Pedidos por entregar</span>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); padding: 16px; margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <input type="text" id="input-search-tienda" class="form-control" placeholder="Buscar por alumno o prenda..." style="width: 100%;">
+                        </div>
+                        <div style="width: 200px;">
+                            <select id="select-filter-tienda-estado" class="form-control">
+                                <option value="todos">Todos los estados</option>
+                                <option value="pendiente-pago">Pendiente de Pago</option>
+                                <option value="pendiente-entrega">Pendiente de Entrega</option>
+                                <option value="completado">Completado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Alumno</th>
+                                    <th>Prenda</th>
+                                    <th>Talle</th>
+                                    <th>Valor Venta</th>
+                                    <th>Costo</th>
+                                    <th>Ganancia</th>
+                                    <th>Estado Pago</th>
+                                    <th>Estado Entrega</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-tienda">
+                                <!-- Carga dinámica -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -917,6 +992,69 @@
                 <div class="modal-actions" style="margin-top: 20px;">
                     <button type="button" class="btn btn-secondary" id="btn-cancel-cobrar-cuota">Cancelar</button>
                     <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">Registrar Cobro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTRAR / EDITAR VENTA INDUMENTARIA -->
+    <div id="modal-venta" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 id="modal-venta-title">Registrar Venta / Pedido</h3>
+                <span class="close-modal" id="close-modal-venta">&times;</span>
+            </div>
+            <form id="form-venta">
+                <input type="hidden" id="form-venta-id">
+                
+                <div class="form-group">
+                    <label for="form-venta-alumno">Selecciona el Alumno</label>
+                    <select id="form-venta-alumno" required>
+                        <!-- Carga dinámica de alumnos -->
+                    </select>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="form-venta-prenda">Tipo de Prenda</label>
+                        <select id="form-venta-prenda" required>
+                            <option value="Remera">Remera</option>
+                            <option value="Buzo">Buzo</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-venta-talle">Talle</label>
+                        <input type="text" id="form-venta-talle" placeholder="Ej: S, M, L, 14, 16" required>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="form-venta-valor">Valor de Venta ($)</label>
+                        <input type="number" id="form-venta-valor" required min="0" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="form-venta-costo">Costo de Fábrica ($)</label>
+                        <input type="number" id="form-venta-costo" required min="0" placeholder="0">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Estados del Pedido</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; font-size: 13px;">
+                            <input type="checkbox" id="form-venta-pagado" style="width: auto; margin-right: 6px;"> ¿Está Pagado?
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; font-size: 13px;">
+                            <input type="checkbox" id="form-venta-entregado" style="width: auto; margin-right: 6px;"> ¿Está Entregado?
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-venta">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">Guardar Pedido</button>
                 </div>
             </form>
         </div>

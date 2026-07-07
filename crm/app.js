@@ -87,6 +87,7 @@ function loadDB() {
             if (!db.alumnos) db.alumnos = [];
             if (!db.asistencias) db.asistencias = [];
             if (!db.liquidaciones) db.liquidaciones = [];
+            if (!db.ventas) db.ventas = [];
         } catch (e) {
             console.error("Error cargando base de datos, usando datos iniciales", e);
             db = { ...INITIAL_DATA };
@@ -163,6 +164,7 @@ function renderAll() {
     renderLiquidaciones();
     renderTablero();
     if (typeof renderReporte === "function") renderReporte();
+    if (typeof renderTienda === "function") renderTienda();
 }
 
 // --- UTILIDADES: NOTIFICACIONES (TOAST) ---
@@ -2276,6 +2278,10 @@ function initializeApp() {
     // Módulo de Reportes
     initReportes();
     renderReporte();
+    
+    // Módulo de Tienda (Remeras y Buzos)
+    initTienda();
+    renderTienda();
 }
 
 // --- BOOTSTRAP APP ---
@@ -2297,3 +2303,263 @@ window.deleteSede = deleteSede;
 window.editDescuento = editDescuento;
 window.deleteDescuento = deleteDescuento;
 window.editDistancia = editDistancia;
+
+// --- MÓDULO TIENDA: REMERAS Y BUZOS ---
+function initTienda() {
+    const modalVenta = document.getElementById("modal-venta");
+    const formVenta = document.getElementById("form-venta");
+    const btnAddVenta = document.getElementById("btn-add-venta");
+    
+    if (modalVenta && formVenta && btnAddVenta) {
+        const closeVentaBtn = document.getElementById("close-modal-venta");
+        if (closeVentaBtn) closeVentaBtn.addEventListener("click", () => closeModal(modalVenta));
+        
+        const cancelVentaBtn = document.getElementById("btn-cancel-venta");
+        if (cancelVentaBtn) cancelVentaBtn.addEventListener("click", () => closeModal(modalVenta));
+        
+        btnAddVenta.addEventListener("click", () => {
+            document.getElementById("modal-venta-title").innerText = "Registrar Venta / Pedido";
+            document.getElementById("form-venta-id").value = "";
+            formVenta.reset();
+            populateTiendaAlumnos();
+            openModal(modalVenta);
+        });
+        
+        formVenta.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const id = document.getElementById("form-venta-id").value;
+            const alumnoId = document.getElementById("form-venta-alumno").value;
+            const prenda = document.getElementById("form-venta-prenda").value;
+            const talle = document.getElementById("form-venta-talle").value;
+            const valor = parseFloat(document.getElementById("form-venta-valor").value) || 0;
+            const costo = parseFloat(document.getElementById("form-venta-costo").value) || 0;
+            const pagado = document.getElementById("form-venta-pagado").checked;
+            const entregado = document.getElementById("form-venta-entregado").checked;
+            
+            if (!id) {
+                // Crear nueva venta
+                const newVenta = {
+                    id: "v-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+                    alumnoId,
+                    prenda,
+                    talle,
+                    valor,
+                    costo,
+                    pagado,
+                    entregado,
+                    fecha: new Date().toISOString().split("T")[0]
+                };
+                db.ventas.push(newVenta);
+                showToast("Venta registrada con éxito.");
+            } else {
+                // Editar venta existente
+                const v = db.ventas.find(x => x.id === id);
+                if (v) {
+                    v.alumnoId = alumnoId;
+                    v.prenda = prenda;
+                    v.talle = talle;
+                    v.valor = valor;
+                    v.costo = costo;
+                    v.pagado = pagado;
+                    v.entregado = entregado;
+                    showToast("Venta modificada con éxito.");
+                }
+            }
+            
+            saveDB();
+            renderTienda();
+            closeModal(modalVenta);
+        });
+    }
+
+    // Filtros de búsqueda
+    const inputSearch = document.getElementById("input-search-tienda");
+    if (inputSearch) {
+        inputSearch.addEventListener("input", renderTienda);
+    }
+    const selectEstado = document.getElementById("select-filter-tienda-estado");
+    if (selectEstado) {
+        selectEstado.addEventListener("change", renderTienda);
+    }
+}
+
+function populateTiendaAlumnos(selectedAlumnoId) {
+    const select = document.getElementById("form-venta-alumno");
+    if (!select) return;
+    
+    select.innerHTML = '<option value="" disabled selected>-- Elige un Alumno --</option>';
+    
+    const alumnosOrdenados = [...db.alumnos].sort((a, b) => a.nombre.localeCompare(b.nombre));
+    
+    alumnosOrdenados.forEach(al => {
+        const opt = document.createElement("option");
+        opt.value = al.id;
+        opt.innerText = al.nombre;
+        if (selectedAlumnoId && al.id === selectedAlumnoId) {
+            opt.selected = true;
+        }
+        select.appendChild(opt);
+    });
+}
+
+function renderTienda() {
+    try {
+        const tbody = document.getElementById("tbody-tienda");
+        if (!tbody) return;
+        
+        const searchInput = document.getElementById("input-search-tienda");
+        const filterEstado = document.getElementById("select-filter-tienda-estado");
+        
+        const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
+        const est = filterEstado ? filterEstado.value : "todos";
+        
+        let totalVentas = 0;
+        let totalCostos = 0;
+        let totalGanancias = 0;
+        let countPendientes = 0;
+        let totalPrendasCount = 0;
+        
+        tbody.innerHTML = "";
+        
+        const ventasOrdenadas = [...db.ventas].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id));
+        
+        ventasOrdenadas.forEach(v => {
+            const al = db.alumnos.find(a => a.id === v.alumnoId);
+            const alNombre = al ? al.nombre : "Alumno Desconocido";
+            
+            totalVentas += v.valor;
+            totalCostos += v.costo;
+            totalGanancias += (v.valor - v.costo);
+            totalPrendasCount++;
+            if (!v.entregado) {
+                countPendientes++;
+            }
+            
+            const matchesSearch = alNombre.toLowerCase().includes(q) || v.prenda.toLowerCase().includes(q) || v.talle.toLowerCase().includes(q);
+            
+            let matchesEstado = true;
+            if (est === "pendiente-pago") {
+                matchesEstado = !v.pagado;
+            } else if (est === "pendiente-entrega") {
+                matchesEstado = !v.entregado;
+            } else if (est === "completado") {
+                matchesEstado = v.pagado && v.entregado;
+            }
+            
+            if (!matchesSearch || !matchesEstado) return;
+            
+            const ganancia = v.valor - v.costo;
+            
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td style="font-weight: 700; color: var(--text-primary);">${alNombre}</td>
+                <td>
+                    <span style="display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-shirt" style="color: var(--accent-primary); opacity: 0.8; font-size: 11px;"></i>
+                        ${v.prenda}
+                    </span>
+                </td>
+                <td style="font-weight: 600; text-transform: uppercase;">${v.talle}</td>
+                <td style="font-weight: 700;">${formatCurrency(v.valor)}</td>
+                <td style="color: var(--text-secondary);">${formatCurrency(v.costo)}</td>
+                <td style="font-weight: 700; color: ${ganancia >= 0 ? "var(--success-light)" : "var(--danger-light)"}">${formatCurrency(ganancia)}</td>
+                <td>
+                    <button class="badge ${v.pagado ? "badge-success" : "badge-danger"}" onclick="toggleVentaPago('${v.id}')" style="border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid ${v.pagado ? "fa-circle-check" : "fa-circle-xmark"}"></i>
+                        ${v.pagado ? "Pagado" : "Pendiente"}
+                    </button>
+                </td>
+                <td>
+                    <button class="badge ${v.entregado ? "badge-success" : "badge-warning"}" onclick="toggleVentaEntrega('${v.id}')" style="border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid ${v.entregado ? "fa-truck-ramp-box" : "fa-clock"}"></i>
+                        ${v.entregado ? "Entregado" : "Pendiente"}
+                    </button>
+                </td>
+                <td>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary btn-sm" onclick="editVenta('${v.id}')" style="padding: 4px 8px; font-size: 11px;">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button class="btn btn-danger-outline btn-sm" onclick="deleteVenta('${v.id}')" style="padding: 4px 8px; font-size: 11px;">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        document.getElementById("tienda-monto-ventas").innerText = formatCurrency(totalVentas);
+        document.getElementById("tienda-sub-ventas").innerText = `${totalPrendasCount} prendas registradas`;
+        document.getElementById("tienda-monto-costos").innerText = formatCurrency(totalCostos);
+        
+        const gananciaEl = document.getElementById("tienda-monto-ganancias");
+        gananciaEl.innerText = (totalGanancias >= 0 ? "" : "-") + formatCurrency(Math.abs(totalGanancias));
+        gananciaEl.style.color = totalGanancias >= 0 ? "var(--success-light)" : "var(--danger-light)";
+        
+        document.getElementById("tienda-count-pendientes").innerText = countPendientes;
+    } catch (err) {
+        console.error("Error en renderTienda:", err);
+    }
+}
+
+function toggleVentaPago(id) {
+    const v = db.ventas.find(x => x.id === id);
+    if (v) {
+        v.pagado = !v.pagado;
+        saveDB();
+        renderTienda();
+        showToast(v.pagado ? "Pedido marcado como Pagado." : "Pago revertido a Pendiente.", "info");
+    }
+}
+
+function toggleVentaEntrega(id) {
+    const v = db.ventas.find(x => x.id === id);
+    if (v) {
+        v.entregado = !v.entregado;
+        saveDB();
+        renderTienda();
+        showToast(v.entregado ? "Pedido entregado con éxito." : "Entrega revertida a Pendiente.", "info");
+    }
+}
+
+function editVenta(id) {
+    const v = db.ventas.find(x => x.id === id);
+    if (v) {
+        document.getElementById("modal-venta-title").innerText = "Editar Pedido / Venta";
+        document.getElementById("form-venta-id").value = v.id;
+        
+        populateTiendaAlumnos(v.alumnoId);
+        
+        document.getElementById("form-venta-prenda").value = v.prenda;
+        document.getElementById("form-venta-talle").value = v.talle;
+        document.getElementById("form-venta-valor").value = v.valor;
+        document.getElementById("form-venta-costo").value = v.costo;
+        document.getElementById("form-venta-pagado").checked = v.pagado;
+        document.getElementById("form-venta-entregado").checked = v.entregado;
+        
+        openModal(document.getElementById("modal-venta"));
+    }
+}
+
+function deleteVenta(id) {
+    const v = db.ventas.find(x => x.id === id);
+    if (!v) return;
+    
+    const al = db.alumnos.find(a => a.id === v.alumnoId);
+    const alNombre = al ? al.nombre : "Alumno";
+    
+    if (confirm(`¿Estás seguro de eliminar el pedido de ${v.prenda} (Talle ${v.talle}) para ${alNombre}?`)) {
+        db.ventas = db.ventas.filter(x => x.id !== id);
+        saveDB();
+        renderTienda();
+        showToast("Pedido eliminado correctamente.", "warning");
+    }
+}
+
+// Exponer funciones globales de la tienda
+window.toggleVentaPago = toggleVentaPago;
+window.toggleVentaEntrega = toggleVentaEntrega;
+window.editVenta = editVenta;
+window.deleteVenta = deleteVenta;
+
