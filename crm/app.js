@@ -1361,16 +1361,18 @@ function initLiquidaciones() {
             e.preventDefault();
             const id = document.getElementById("form-cobrar-liq-id").value;
             const metodo = document.getElementById("form-cobrar-metodo").value;
+            const montoModificado = parseFloat(document.getElementById("form-cobrar-monto-input").value) || 0;
             
             const liq = db.liquidaciones.find(l => l.id === id);
             if (liq) {
                 liq.estado = "Pagado";
                 liq.metodoPago = metodo;
+                liq.montoNeto = montoModificado; // Guardar el monto ajustado
                 saveDB();
                 renderLiquidaciones();
                 renderTablero();
                 closeModal(modalCobrar);
-                showToast(`Pago registrado con éxito (${metodo}).`);
+                showToast(`Pago registrado con éxito (${metodo}) por ${formatCurrency(montoModificado)}.`);
             }
         });
     }
@@ -1663,13 +1665,13 @@ function toggleEstadoLiquidacion(id) {
             const elId = document.getElementById("form-cobrar-liq-id");
             const elNombre = document.getElementById("cobrar-alumno-nombre");
             const elConcepto = document.getElementById("cobrar-concepto");
-            const elMonto = document.getElementById("cobrar-monto");
+            const elMontoInput = document.getElementById("form-cobrar-monto-input");
             const elMetodo = document.getElementById("form-cobrar-metodo");
             
             if (elId) elId.value = liq.id;
             if (elNombre) elNombre.innerText = alNombre;
             if (elConcepto) elConcepto.innerText = conceptoText || "Cobranza de clase";
-            if (elMonto) elMonto.innerText = formatCurrency(liq.montoNeto);
+            if (elMontoInput) elMontoInput.value = liq.montoNeto;
             if (elMetodo) elMetodo.value = "Transferencia"; // Valor inicial por defecto
             
             const modalCobrar = document.getElementById("modal-cobrar-cuota");
