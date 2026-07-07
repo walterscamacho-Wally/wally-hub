@@ -74,26 +74,32 @@ let isSyncing = false;
 // --- ESTADO GLOBAL ---
 let db = { ...INITIAL_DATA };
 
+function ensureDbNodes(target) {
+    if (!target) return;
+    if (!target.settings) target.settings = { ...INITIAL_DATA.settings };
+    if (!target.sedes) target.sedes = [...INITIAL_DATA.sedes];
+    if (!target.descuentos) target.descuentos = [...INITIAL_DATA.descuentos];
+    if (!target.alumnos) target.alumnos = [];
+    if (!target.asistencias) target.asistencias = [];
+    if (!target.liquidaciones) target.liquidaciones = [];
+    if (!target.ventas) target.ventas = [];
+}
+
 // --- CARGAR / GUARDAR LOCALSTORAGE Y NUBE ---
 function loadDB() {
     const rawData = localStorage.getItem("baila_con_wally_crm_data");
     if (rawData) {
         try {
             db = JSON.parse(rawData);
-            // Asegurar que existan todos los nodos
-            if (!db.settings) db.settings = { ...INITIAL_DATA.settings };
-            if (!db.sedes) db.sedes = [...INITIAL_DATA.sedes];
-            if (!db.descuentos) db.descuentos = [...INITIAL_DATA.descuentos];
-            if (!db.alumnos) db.alumnos = [];
-            if (!db.asistencias) db.asistencias = [];
-            if (!db.liquidaciones) db.liquidaciones = [];
-            if (!db.ventas) db.ventas = [];
+            ensureDbNodes(db);
         } catch (e) {
             console.error("Error cargando base de datos, usando datos iniciales", e);
             db = { ...INITIAL_DATA };
+            ensureDbNodes(db);
         }
     } else {
         db = { ...INITIAL_DATA };
+        ensureDbNodes(db);
         saveDB();
     }
 }
@@ -118,6 +124,7 @@ async function pullFromCloud() {
             let cloudDB = typeof data.db_json === "string" ? JSON.parse(data.db_json) : data.db_json;
             if (cloudDB && (cloudDB.alumnos || cloudDB.sedes)) {
                 db = cloudDB;
+                ensureDbNodes(db);
                 localStorage.setItem("baila_con_wally_crm_data", JSON.stringify(db));
                 console.log("Datos cargados desde la nube.");
                 renderAll();
