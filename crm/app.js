@@ -2100,22 +2100,57 @@ function getReportData() {
         ? Math.min(100, Math.round((asistenciasMes.length / slotsEsperadosTotal) * 100))
         : 0;
         
-    // Agrupar Ingresos por Sede
-    const sedesResumen = db.sedes.map(sede => {
-        const alumnosSede = db.alumnos.filter(al => al.sedeId === sede.id);
-        let recaudadoSede = 0;
+    // Agrupar Ingresos por Sede (distribución proporcional para alumnos con múltiples actividades)
+    const sedesResumen = db.sedes.map(Sede => {
+        // Contar todos los alumnos que asisten a esta sede (ya sea clase principal o extra)
+        const alumnosSede = db.alumnos.filter(al => al.sedeId === Sede.id || al.sedeExtraId === Sede.id);
         
+        let recaudadoSede = 0;
         liquidacionesMes.forEach(liq => {
-            const al = alumnosSede.find(a => a.id === liq.alumnoId);
-            if (al && liq.estado === "Pagado") {
-                recaudadoSede += liq.montoNeto;
+            const al = db.alumnos.find(a => a.id === liq.alumnoId);
+            if (!al || liq.estado !== "Pagado") return;
+            
+            // Si es la clase principal del alumno
+            if (al.sedeId === Sede.id) {
+                const freq = al.frecuencia;
+                const base1 = Sede.precios[freq] || 0;
+                
+                let base2 = 0;
+                if (al.sedeExtraId && al.frecuenciaExtra) {
+                    const SedeExtra = db.sedes.find(s => s.id === al.sedeExtraId);
+                    if (SedeExtra) {
+                        base2 = SedeExtra.precios[al.frecuenciaExtra] || 0;
+                    }
+                }
+                
+                const montoBase = base1 + base2;
+                if (montoBase > 0) {
+                    recaudadoSede += liq.montoNeto * (base1 / montoBase);
+                } else {
+                    recaudadoSede += liq.montoNeto; // Si no hay precios, todo a la principal
+                }
+            }
+            
+            // Si es la clase secundaria (extra) del alumno
+            if (al.sedeExtraId === Sede.id) {
+                const SedePrincipal = db.sedes.find(s => s.id === al.sedeId);
+                const freqPrincipal = al.frecuencia;
+                const base1 = SedePrincipal ? (SedePrincipal.precios[freqPrincipal] || 0) : 0;
+                
+                const freqExtra = al.frecuenciaExtra;
+                const base2 = Sede.precios[freqExtra] || 0;
+                
+                const montoBase = base1 + base2;
+                if (montoBase > 0) {
+                    recaudadoSede += liq.montoNeto * (base2 / montoBase);
+                }
             }
         });
         
         return {
-            nombre: sede.nombre,
+            nombre: Sede.nombre,
             alumnosCount: alumnosSede.length,
-            recaudado: recaudadoSede
+            recaudado: Math.round(recaudadoSede)
         };
     });
     
