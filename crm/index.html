@@ -11,7 +11,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- CSS Estilos -->
-    <link rel="stylesheet" href="style.css?v=4.21.0">
+    <link rel="stylesheet" href="style.css?v=4.22.0">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Supabase JS Client CDN -->
@@ -47,6 +47,10 @@
                 <a href="#" class="nav-item" data-tab="tienda">
                     <span class="icon"><i class="fa-solid fa-shirt"></i></span>
                     <span>Remeras y Buzos</span>
+                </a>
+                <a href="#" class="nav-item" data-tab="finanzas-personales">
+                    <span class="icon"><i class="fa-solid fa-wallet"></i></span>
+                    <span>Finanzas Personales</span>
                 </a>
                 <a href="#" class="nav-item" data-tab="tablero">
                     <span class="icon"><i class="fa-solid fa-chart-simple"></i></span>
@@ -727,6 +731,100 @@
                                 <!-- Carga dinámica -->
                             </tbody>
                         </table>
+                </section>
+
+                <!-- VIEW: FINANZAS PERSONALES -->
+                <section id="view-finanzas-personales" class="view-section">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <div>
+                            <h2 style="font-family: var(--font-title); font-size: 28px; letter-spacing: 1px;">Finanzas Personales y Hogar</h2>
+                            <p class="text-muted" style="font-size: 13px;">Registra tus ingresos y gastos externos para consolidarlos con tu actividad académica.</p>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-secondary" id="btn-add-ingreso-personal" style="border: 1px solid var(--success-light); color: var(--success-light); background: rgba(46, 204, 113, 0.05); font-weight: 700;">
+                                <i class="fa-solid fa-arrow-trend-up" style="margin-right: 6px;"></i> + Ingreso Personal
+                            </button>
+                            <button class="btn btn-secondary" id="btn-add-gasto-personal" style="border: 1px solid var(--danger-light); color: var(--danger-light); background: rgba(231, 76, 60, 0.05); font-weight: 700;">
+                                <i class="fa-solid fa-arrow-trend-down" style="margin-right: 6px;"></i> + Gasto Personal
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 1. BLOQUE DE CONSOLIDACIÓN GENERAL (Academia + Personal) -->
+                    <div class="card" style="padding: 20px; margin-bottom: 24px; border: 1px solid rgba(255, 107, 0, 0.25); background: linear-gradient(145deg, rgba(255, 107, 0, 0.03) 0%, rgba(0, 0, 0, 0) 100%);">
+                        <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-scale-balanced"></i> Ecosistema Consolidado Global (Mes Seleccionado)
+                        </h3>
+                        <div class="grid-kpi" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 0;">
+                            <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-color); padding: 16px; border-radius: 8px;">
+                                <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;">Ingresos Consolidados</span>
+                                <h4 id="consolidado-total-ingresos" style="font-size: 26px; font-weight: 800; color: var(--text-primary); margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px;">$0</h4>
+                                <span class="text-sm text-muted" id="consolidado-sub-ingresos">Academia + Personal</span>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-color); padding: 16px; border-radius: 8px;">
+                                <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;">Egresos Consolidados</span>
+                                <h4 id="consolidado-total-egresos" style="font-size: 26px; font-weight: 800; color: var(--danger-light); margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px;">$0</h4>
+                                <span class="text-sm text-muted" id="consolidado-sub-egresos">Salones, Nafta + Hogar</span>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-color); padding: 16px; border-radius: 8px; border-left: 4px solid var(--success-light);">
+                                <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;">Caja Neta Libre Absoluta</span>
+                                <h4 id="consolidado-caja-neta" style="font-size: 26px; font-weight: 800; color: var(--success-light); margin-top: 6px; font-family: var(--font-title); letter-spacing: 1px;">$0</h4>
+                                <span class="text-sm text-muted">Dinero real libre remanente</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 2. METRICAS EXCLUSIVAS PERSONALES -->
+                    <div class="grid-kpi" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 24px; gap: 16px;">
+                        <div class="card" style="padding: 16px; border-left: 4px solid var(--success-light);">
+                            <p class="text-muted text-sm" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Ingresos Personales</p>
+                            <h4 id="personal-monto-ingresos" style="font-size: 22px; font-weight: 800; margin-top: 6px; font-family: var(--font-title);">$0</h4>
+                            <span class="text-muted text-sm" id="personal-sub-ingresos">0 movimientos</span>
+                        </div>
+                        <div class="card" style="padding: 16px; border-left: 4px solid var(--danger-light);">
+                            <p class="text-muted text-sm" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Gastos Personales</p>
+                            <h4 id="personal-monto-egresos" style="font-size: 22px; font-weight: 800; margin-top: 6px; font-family: var(--font-title);">$0</h4>
+                            <span class="text-muted text-sm" id="personal-sub-egresos">0 movimientos</span>
+                        </div>
+                        <div class="card" style="padding: 16px; border-left: 4px solid var(--accent-primary);">
+                            <p class="text-muted text-sm" style="margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Balance Personal</p>
+                            <h4 id="personal-caja-neta" style="font-size: 22px; font-weight: 800; margin-top: 6px; font-family: var(--font-title);">$0</h4>
+                            <span class="text-muted text-sm">Caja neta del ámbito privado</span>
+                        </div>
+                    </div>
+
+                    <!-- 3. CONTROLES Y FILTROS -->
+                    <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); padding: 16px; margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <input type="text" id="input-search-personal" class="form-control" placeholder="Buscar por categoría o descripción..." style="width: 100%;">
+                        </div>
+                        <div style="width: 200px;">
+                            <select id="select-filter-personal-tipo" class="form-control">
+                                <option value="todos">Todos los movimientos</option>
+                                <option value="ingreso">Solo Ingresos</option>
+                                <option value="egreso">Solo Gastos</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 4. TABLA DE MOVIMIENTOS -->
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Categoría</th>
+                                    <th>Descripción</th>
+                                    <th>Método de Pago</th>
+                                    <th style="text-align: right;">Monto</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-personal">
+                                <!-- Carga dinámica -->
+                            </tbody>
+                        </table>
                     </div>
                 </section>
             </div>
@@ -1060,6 +1158,64 @@
         </div>
     </div>
 
+    <!-- MODAL: REGISTRAR / EDITAR MOVIMIENTO PERSONAL -->
+    <div id="modal-personal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h3 id="modal-personal-title">Registrar Movimiento Personal</h3>
+                <span class="close-modal" id="close-modal-personal">&times;</span>
+            </div>
+            <form id="form-personal">
+                <input type="hidden" id="form-personal-id">
+                <input type="hidden" id="form-personal-tipo" value="ingreso">
+                
+                <div class="form-group">
+                    <label for="form-personal-categoria">Categoría</label>
+                    <select id="form-personal-categoria" required style="width: 100%;">
+                        <!-- Categorías dinámicas -->
+                    </select>
+                </div>
+                
+                <div class="form-group" id="form-group-categoria-custom" style="display: none;">
+                    <label for="form-personal-categoria-custom">Categoría Personalizada</label>
+                    <input type="text" id="form-personal-categoria-custom" placeholder="Ej: Supermercado Coto, Peluquería">
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="form-personal-monto">Monto ($)</label>
+                        <input type="number" id="form-personal-monto" required min="1" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="form-personal-metodo">Método de Pago</label>
+                        <select id="form-personal-metodo" required>
+                            <option value="Transferencia" selected>Transferencia</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Mercado Pago">Mercado Pago</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label for="form-personal-fecha">Fecha</label>
+                        <input type="date" id="form-personal-fecha" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="form-personal-descripcion">Descripción / Notas</label>
+                    <input type="text" id="form-personal-descripcion" placeholder="Ej: Pago mensual, Nafta para el auto, etc.">
+                </div>
+
+                <div class="modal-actions" style="margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-personal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">Guardar Registro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- SCREEN DE BLOQUEO / INICIO DE SESIÓN -->
     <div id="w-gatekeeper" class="w-gatekeeper" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0a0a0a; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 10000; align-items: center; justify-content: center; padding: 20px;">
         <div class="auth-card" style="background: #111111; border: 1px solid rgba(255, 107, 0, 0.15); border-radius: 8px; width: 100%; max-width: 400px; padding: 40px 30px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 50px rgba(255, 107, 0, 0.05); position: relative; overflow: hidden;">
@@ -1100,6 +1256,6 @@
     </div>
 
     <!-- Script de Lógica -->
-    <script src="app.js?v=4.21.0"></script>
+    <script src="app.js?v=4.22.0"></script>
 </body>
 </html>

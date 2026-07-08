@@ -83,6 +83,7 @@ function ensureDbNodes(target) {
     if (!target.asistencias) target.asistencias = [];
     if (!target.liquidaciones) target.liquidaciones = [];
     if (!target.ventas) target.ventas = [];
+    if (!target.finanzasPersonales) target.finanzasPersonales = [];
 }
 
 // --- CARGAR / GUARDAR LOCALSTORAGE Y NUBE ---
@@ -172,6 +173,7 @@ function renderAll() {
     renderTablero();
     if (typeof renderReporte === "function") renderReporte();
     if (typeof renderTienda === "function") renderTienda();
+    if (typeof renderFinanzasPersonales === "function") renderFinanzasPersonales();
 }
 
 // --- UTILIDADES: NOTIFICACIONES (TOAST) ---
@@ -1279,6 +1281,7 @@ function initLiquidaciones() {
     selectMes.addEventListener("change", () => {
         renderLiquidaciones();
         renderTablero();
+        if (typeof renderFinanzasPersonales === "function") renderFinanzasPersonales();
     });
     if (btnGenerar) btnGenerar.addEventListener("click", generarLiquidacionesCiclo);
     if (searchLiq) searchLiq.addEventListener("input", renderLiquidaciones);
@@ -2312,6 +2315,10 @@ function initializeApp() {
     // Módulo de Tienda (Remeras y Buzos)
     initTienda();
     renderTienda();
+    
+    // Módulo de Finanzas Personales
+    initFinanzasPersonales();
+    renderFinanzasPersonales();
 }
 
 // --- BOOTSTRAP APP ---
@@ -2592,4 +2599,305 @@ window.toggleVentaPago = toggleVentaPago;
 window.toggleVentaEntrega = toggleVentaEntrega;
 window.editVenta = editVenta;
 window.deleteVenta = deleteVenta;
+
+// --- MÓDULO DE FINANZAS PERSONALES ---
+function initFinanzasPersonales() {
+    const modalPersonal = document.getElementById("modal-personal");
+    const formPersonal = document.getElementById("form-personal");
+    const btnAddIngreso = document.getElementById("btn-add-ingreso-personal");
+    const btnAddGasto = document.getElementById("btn-add-gasto-personal");
+    const selectCategoria = document.getElementById("form-personal-categoria");
+    const groupCategoriaCustom = document.getElementById("form-group-categoria-custom");
+    
+    if (modalPersonal && formPersonal && btnAddIngreso && btnAddGasto) {
+        const closeBtn = document.getElementById("close-modal-personal");
+        if (closeBtn) closeBtn.addEventListener("click", () => closeModal(modalPersonal));
+        
+        const cancelBtn = document.getElementById("btn-cancel-personal");
+        if (cancelBtn) cancelBtn.addEventListener("click", () => closeModal(modalPersonal));
+        
+        selectCategoria.addEventListener("change", () => {
+            if (selectCategoria.value === "Otros") {
+                groupCategoriaCustom.style.display = "block";
+                document.getElementById("form-personal-categoria-custom").required = true;
+            } else {
+                groupCategoriaCustom.style.display = "none";
+                document.getElementById("form-personal-categoria-custom").required = false;
+            }
+        });
+
+        btnAddIngreso.addEventListener("click", () => {
+            document.getElementById("modal-personal-title").innerText = "Registrar Ingreso Personal";
+            document.getElementById("form-personal-id").value = "";
+            document.getElementById("form-personal-tipo").value = "ingreso";
+            formPersonal.reset();
+            groupCategoriaCustom.style.display = "none";
+            document.getElementById("form-personal-categoria-custom").required = false;
+            document.getElementById("form-personal-fecha").value = new Date().toISOString().split("T")[0];
+            
+            populateCategorias("ingreso");
+            openModal(modalPersonal);
+        });
+
+        btnAddGasto.addEventListener("click", () => {
+            document.getElementById("modal-personal-title").innerText = "Registrar Gasto Personal";
+            document.getElementById("form-personal-id").value = "";
+            document.getElementById("form-personal-tipo").value = "egreso";
+            formPersonal.reset();
+            groupCategoriaCustom.style.display = "none";
+            document.getElementById("form-personal-categoria-custom").required = false;
+            document.getElementById("form-personal-fecha").value = new Date().toISOString().split("T")[0];
+            
+            populateCategorias("egreso");
+            openModal(modalPersonal);
+        });
+
+        formPersonal.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const id = document.getElementById("form-personal-id").value;
+            const tipo = document.getElementById("form-personal-tipo").value;
+            let categoria = selectCategoria.value;
+            if (categoria === "Otros") {
+                categoria = document.getElementById("form-personal-categoria-custom").value.trim() || "Otros";
+            }
+            const monto = parseFloat(document.getElementById("form-personal-monto").value) || 0;
+            const metodoPago = document.getElementById("form-personal-metodo").value;
+            const fecha = document.getElementById("form-personal-fecha").value;
+            const descripcion = document.getElementById("form-personal-descripcion").value.trim();
+            const mes = fecha.substring(0, 7);
+            
+            if (!id) {
+                const nuevo = {
+                    id: "fp-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4),
+                    tipo,
+                    categoria,
+                    monto,
+                    metodoPago,
+                    fecha,
+                    mes,
+                    descripcion
+                };
+                db.finanzasPersonales.push(nuevo);
+                showToast("Movimiento personal registrado con éxito.");
+            } else {
+                const mov = db.finanzasPersonales.find(m => m.id === id);
+                if (mov) {
+                    mov.tipo = tipo;
+                    mov.categoria = categoria;
+                    mov.monto = monto;
+                    mov.metodoPago = metodoPago;
+                    mov.fecha = fecha;
+                    mov.mes = mes;
+                    mov.descripcion = descripcion;
+                    showToast("Movimiento personal modificado con éxito.");
+                }
+            }
+            
+            saveDB();
+            renderFinanzasPersonales();
+            closeModal(modalPersonal);
+        });
+    }
+
+    const inputSearch = document.getElementById("input-search-personal");
+    if (inputSearch) {
+        inputSearch.addEventListener("input", renderFinanzasPersonales);
+    }
+    const selectTipoFilter = document.getElementById("select-filter-personal-tipo");
+    if (selectTipoFilter) {
+        selectTipoFilter.addEventListener("change", renderFinanzasPersonales);
+    }
+}
+
+function populateCategorias(tipo, selectedCategory) {
+    const select = document.getElementById("form-personal-categoria");
+    if (!select) return;
+    
+    select.innerHTML = "";
+    
+    const catsIngreso = ["Alinearte", "Alinearte Redes", "Otros"];
+    const catsEgreso = ["Servicios del hogar", "Alquiler de la casa", "Cuota alimentaria", "Psicóloga", "Supermercado", "Otros"];
+    
+    const categorias = tipo === "ingreso" ? catsIngreso : catsEgreso;
+    
+    let existsInPredefined = false;
+    categorias.forEach(cat => {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.innerText = cat;
+        if (selectedCategory && cat === selectedCategory) {
+            opt.selected = true;
+            existsInPredefined = true;
+        }
+        select.appendChild(opt);
+    });
+    
+    const customInput = document.getElementById("form-personal-categoria-custom");
+    const groupCustom = document.getElementById("form-group-categoria-custom");
+    
+    if (selectedCategory && !existsInPredefined) {
+        const lastOpt = select.options[select.options.length - 1];
+        if (lastOpt && lastOpt.value === "Otros") {
+            lastOpt.selected = true;
+        }
+        if (groupCustom) groupCustom.style.display = "block";
+        if (customInput) {
+            customInput.value = selectedCategory;
+            customInput.required = true;
+        }
+    } else {
+        if (groupCustom) groupCustom.style.display = "none";
+        if (customInput) {
+            customInput.value = "";
+            customInput.required = false;
+        }
+    }
+}
+
+function renderFinanzasPersonales() {
+    try {
+        const tbody = document.getElementById("tbody-personal");
+        if (!tbody) return;
+        
+        const selectMes = document.getElementById("select-liquidacion-mes");
+        if (!selectMes) return;
+        const selectedMonth = selectMes.value;
+        
+        const searchInput = document.getElementById("input-search-personal");
+        const filterTipo = document.getElementById("select-filter-personal-tipo");
+        
+        const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
+        const typeFilter = filterTipo ? filterTipo.value : "todos";
+        
+        let personalIngresos = 0;
+        let personalEgresos = 0;
+        let personalIngresosCount = 0;
+        let personalEgresosCount = 0;
+        
+        tbody.innerHTML = "";
+        
+        const movimientosOrdenados = [...db.finanzasPersonales]
+            .filter(m => m.mes === selectedMonth)
+            .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id.localeCompare(a.id));
+            
+        movimientosOrdenados.forEach(m => {
+            if (m.tipo === "ingreso") {
+                personalIngresos += m.monto;
+                personalIngresosCount++;
+            } else {
+                personalEgresos += m.monto;
+                personalEgresosCount++;
+            }
+            
+            const matchesSearch = m.categoria.toLowerCase().includes(q) || m.descripcion.toLowerCase().includes(q);
+            const matchesTipo = typeFilter === "todos" || m.tipo === typeFilter;
+            
+            if (!matchesSearch || !matchesTipo) return;
+            
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td style="font-weight: 600;">${m.fecha}</td>
+                <td>
+                    <span class="badge ${m.tipo === "ingreso" ? "badge-success" : "badge-danger"}" style="display: inline-flex; align-items: center; gap: 4px; border: none;">
+                        <i class="fa-solid ${m.tipo === "ingreso" ? "fa-arrow-trend-up" : "fa-arrow-trend-down"}"></i>
+                        ${m.tipo === "ingreso" ? "Ingreso" : "Gasto"}
+                    </span>
+                </td>
+                <td style="font-weight: 700; color: var(--text-primary);">${m.categoria}</td>
+                <td style="color: var(--text-secondary); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${m.descripcion || "-"}</td>
+                <td>
+                    <span style="font-size: 11px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px;">
+                        ${m.metodoPago}
+                    </span>
+                </td>
+                <td style="font-weight: 800; text-align: right; color: ${m.tipo === "ingreso" ? "var(--success-light)" : "var(--danger-light)"}">
+                    ${m.tipo === "ingreso" ? "+" : "-"}${formatCurrency(m.monto)}
+                </td>
+                <td>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary btn-sm" onclick="editMovimiento('${m.id}')" style="padding: 4px 8px; font-size: 11px;">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button class="btn btn-danger-outline btn-sm" onclick="deleteMovimiento('${m.id}')" style="padding: 4px 8px; font-size: 11px;">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        document.getElementById("personal-monto-ingresos").innerText = formatCurrency(personalIngresos);
+        document.getElementById("personal-sub-ingresos").innerText = `${personalIngresosCount} ingresos registrados`;
+        
+        document.getElementById("personal-monto-egresos").innerText = formatCurrency(personalEgresos);
+        document.getElementById("personal-sub-egresos").innerText = `${personalEgresosCount} gastos registrados`;
+        
+        const personalCaja = personalIngresos - personalEgresos;
+        const personalCajaEl = document.getElementById("personal-caja-neta");
+        personalCajaEl.innerText = (personalCaja >= 0 ? "" : "-") + formatCurrency(Math.abs(personalCaja));
+        personalCajaEl.style.color = personalCaja >= 0 ? "var(--success-light)" : "var(--danger-light)";
+        
+        const r = getReportData();
+        let academiaIngresos = 0;
+        let academiaEgresos = 0;
+        
+        if (r) {
+            academiaIngresos = r.totalRecaudado || 0;
+            academiaEgresos = r.totalGastos || 0;
+        }
+        
+        const consolidadoIngresos = academiaIngresos + personalIngresos;
+        const consolidadoEgresos = academiaEgresos + personalEgresos;
+        const consolidadoCaja = consolidadoIngresos - consolidadoEgresos;
+        
+        document.getElementById("consolidado-total-ingresos").innerText = formatCurrency(consolidadoIngresos);
+        document.getElementById("consolidado-sub-ingresos").innerText = `Clases (${formatCurrency(academiaIngresos)}) + Personal (${formatCurrency(personalIngresos)})`;
+        
+        document.getElementById("consolidado-total-egresos").innerText = formatCurrency(consolidadoEgresos);
+        document.getElementById("consolidado-sub-egresos").innerText = `Academia (${formatCurrency(academiaEgresos)}) + Personal (${formatCurrency(personalEgresos)})`;
+        
+        const consolidadoCajaEl = document.getElementById("consolidado-caja-neta");
+        consolidadoCajaEl.innerText = (consolidadoCaja >= 0 ? "" : "-") + formatCurrency(Math.abs(consolidadoCaja));
+        consolidadoCajaEl.style.color = consolidadoCaja >= 0 ? "var(--success-light)" : "var(--danger-light)";
+        
+    } catch (err) {
+        console.error("Error en renderFinanzasPersonales:", err);
+    }
+}
+
+function editMovimiento(id) {
+    const mov = db.finanzasPersonales.find(m => m.id === id);
+    if (mov) {
+        document.getElementById("modal-personal-title").innerText = mov.tipo === "ingreso" ? "Editar Ingreso Personal" : "Editar Gasto Personal";
+        document.getElementById("form-personal-id").value = mov.id;
+        document.getElementById("form-personal-tipo").value = mov.tipo;
+        
+        populateCategorias(mov.tipo, mov.categoria);
+        
+        document.getElementById("form-personal-monto").value = mov.monto;
+        document.getElementById("form-personal-metodo").value = mov.metodoPago;
+        document.getElementById("form-personal-fecha").value = mov.fecha;
+        document.getElementById("form-personal-descripcion").value = mov.descripcion || "";
+        
+        openModal(document.getElementById("modal-personal"));
+    }
+}
+
+function deleteMovimiento(id) {
+    const mov = db.finanzasPersonales.find(m => m.id === id);
+    if (!mov) return;
+    
+    if (confirm(`¿Estás seguro de eliminar este registro de ${mov.tipo === "ingreso" ? "ingreso" : "gasto"} (${mov.categoria}) por ${formatCurrency(mov.monto)}?`)) {
+        db.finanzasPersonales = db.finanzasPersonales.filter(m => m.id !== id);
+        saveDB();
+        renderFinanzasPersonales();
+        showToast("Registro eliminado correctamente.", "warning");
+    }
+}
+
+// Exponer funciones globales del módulo
+window.editMovimiento = editMovimiento;
+window.deleteMovimiento = deleteMovimiento;
+
 
