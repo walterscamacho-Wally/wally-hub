@@ -2041,9 +2041,9 @@ function getReportData() {
     
     const liquidacionesMes = db.liquidaciones.filter(l => l.mes === selectedMonth);
     
-    // Ingresos y desglose de método de pago
+    // Ingresos y desglose de método de pago (solo cuotas)
     let totalEsperado = 0;
-    let totalRecaudado = 0;
+    let recaudadoCuotas = 0;
     let cuotasPagasCount = 0;
     let totalTransferencia = 0;
     let totalEfectivo = 0;
@@ -2052,7 +2052,7 @@ function getReportData() {
     liquidacionesMes.forEach(liq => {
         totalEsperado += liq.montoNeto;
         if (liq.estado === "Pagado") {
-            totalRecaudado += liq.montoNeto;
+            recaudadoCuotas += liq.montoNeto;
             cuotasPagasCount++;
             
             const metodo = liq.metodoPago || "Transferencia";
@@ -2066,7 +2066,25 @@ function getReportData() {
         }
     });
     
-    const totalPendiente = totalEsperado - totalRecaudado;
+    const totalPendiente = totalEsperado - recaudadoCuotas;
+    
+    // Ventas e Indumentaria del mes
+    let totalVentasRecaudado = 0;
+    let totalVentasCosto = 0;
+    let ventasPagasCount = 0;
+    let ventasTotalCount = 0;
+    if (db.ventas) {
+        db.ventas.forEach(v => {
+            if (v.fecha && v.fecha.startsWith(selectedMonth)) {
+                totalVentasCosto += (v.costo || 0);
+                ventasTotalCount++;
+                if (v.pagado) {
+                    totalVentasRecaudado += (v.valor || 0);
+                    ventasPagasCount++;
+                }
+            }
+        });
+    }
     
     // Alquileres de Sedes
     let totalAlquileres = 0;
@@ -2089,7 +2107,11 @@ function getReportData() {
     const combustibleRealMensual = combustibleRealSemanal * 4.33;
     
     const gastoCombustible = combustibleRealMensual > 0 ? combustibleRealMensual : combustibleTeoricoMensual;
-    const totalGastos = totalAlquileres + gastoCombustible;
+    
+    // Consolidados Generales (Academia)
+    const gastosOperativos = totalAlquileres + gastoCombustible;
+    const totalGastos = gastosOperativos + totalVentasCosto;
+    const totalRecaudado = recaudadoCuotas + totalVentasRecaudado;
     const cajaNeta = totalRecaudado - totalGastos;
     
     // Métricas de Asistencia
@@ -2149,11 +2171,17 @@ function getReportData() {
         mesLabel,
         totalEsperado,
         totalRecaudado,
+        recaudadoCuotas,
+        totalVentasRecaudado,
+        totalVentasCosto,
+        ventasPagasCount,
+        ventasTotalCount,
         totalPendiente,
         cuotasPagasCount,
         cuotasTotalCount: liquidacionesMes.length,
         totalAlquileres,
         gastoCombustible,
+        gastosOperativos,
         totalGastos,
         cajaNeta,
         asistenciasMesCount: asistenciasMes.length,
@@ -2172,15 +2200,15 @@ function renderReporte() {
     
     // Pintar KPIs
     document.getElementById("rep-kpi-ingresos").innerText = formatCurrency(r.totalRecaudado);
-    document.getElementById("rep-kpi-ingresos-desc").innerText = `${r.cuotasPagasCount} cuotas cobradas (de ${r.cuotasTotalCount} generadas)`;
+    document.getElementById("rep-kpi-ingresos-desc").innerText = `Cuotas: ${formatCurrency(r.recaudadoCuotas)} | Tienda: ${formatCurrency(r.totalVentasRecaudado)}`;
     
     document.getElementById("rep-kpi-egresos").innerText = formatCurrency(r.totalGastos);
-    document.getElementById("rep-kpi-egresos-desc").innerText = `Alquileres: ${formatCurrency(r.totalAlquileres)} | Combustible: ${formatCurrency(r.gastoCombustible)}`;
+    document.getElementById("rep-kpi-egresos-desc").innerText = `Operativos: ${formatCurrency(r.gastosOperativos)} | Tienda: ${formatCurrency(r.totalVentasCosto)}`;
     
     const netoEl = document.getElementById("rep-kpi-neto");
     netoEl.innerText = (r.cajaNeta >= 0 ? "" : "-") + formatCurrency(Math.abs(r.cajaNeta));
     netoEl.style.color = r.cajaNeta >= 0 ? "var(--success-light)" : "var(--danger-light)";
-    document.getElementById("rep-kpi-neto-desc").innerText = `Recaudado Real - Gastos Operativos`;
+    document.getElementById("rep-kpi-neto-desc").innerText = `Ingresos Brutos - Egresos Totales`;
     
     document.getElementById("rep-kpi-asistencia").innerText = `${r.tasaPresentismo}%`;
     document.getElementById("rep-kpi-asistencia-desc").innerText = `Alumnos activos: ${r.alumnosActivosCount} | Clases: ${r.asistenciasMesCount}`;
@@ -2198,20 +2226,29 @@ function renderReporte() {
         tbodyIngresos.appendChild(tr);
     });
     
+    // Agregar Fila de Remeras y Buzos a la Tabla de Ingresos del reporte
+    const trVentas = document.createElement("tr");
+    trVentas.innerHTML = `
+        <td style="font-weight: 600; color: var(--accent-primary);"><i class="fa-solid fa-shirt" style="margin-right: 6px;"></i>Venta de Indumentaria</td>
+        <td style="text-align: right;">${r.ventasPagasCount} cobrados (de ${r.ventasTotalCount})</td>
+        <td style="text-align: right; font-weight: 700; color: var(--success-light);">${formatCurrency(r.totalVentasRecaudado)}</td>
+    `;
+    tbodyIngresos.appendChild(trVentas);
+    
     // Renderizar Tabla de Ingresos por Método de Pago
     const tbodyMetodos = document.getElementById("rep-table-metodos-body");
     if (tbodyMetodos) {
         tbodyMetodos.innerHTML = `
             <tr>
-                <td style="font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-money-bill-transfer" style="margin-right: 6px; width: 16px; color: var(--text-secondary);"></i>Transferencia Bancaria</td>
+                <td style="font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-money-bill-transfer" style="margin-right: 6px; width: 16px; color: var(--text-secondary);"></i>Transferencia Bancaria (Cuotas)</td>
                 <td style="text-align: right; font-weight: 700; color: var(--success-light);">${formatCurrency(r.totalTransferencia)}</td>
             </tr>
             <tr>
-                <td style="font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-money-bill-wave" style="margin-right: 6px; width: 16px; color: var(--success-light);"></i>Efectivo</td>
+                <td style="font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-money-bill-wave" style="margin-right: 6px; width: 16px; color: var(--success-light);"></i>Efectivo (Cuotas)</td>
                 <td style="text-align: right; font-weight: 700; color: var(--success-light);">${formatCurrency(r.totalEfectivo)}</td>
             </tr>
             <tr>
-                <td style="font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-wallet" style="margin-right: 6px; width: 16px; color: #00b1ea;"></i>Mercado Pago</td>
+                <td style="font-weight: 600; color: var(--text-primary);"><i class="fa-solid fa-wallet" style="margin-right: 6px; width: 16px; color: #00b1ea;"></i>Mercado Pago (Cuotas)</td>
                 <td style="text-align: right; font-weight: 700; color: var(--success-light);">${formatCurrency(r.totalMercadoPago)}</td>
             </tr>
         `;
@@ -2227,6 +2264,10 @@ function renderReporte() {
         <tr>
             <td style="font-weight: 600;">Logística / Combustible</td>
             <td style="text-align: right; font-weight: 700; color: var(--danger-light);">${formatCurrency(r.gastoCombustible)}</td>
+        </tr>
+        <tr>
+            <td style="font-weight: 600; color: var(--accent-primary);">Costo de Indumentaria (Fábrica)</td>
+            <td style="text-align: right; font-weight: 700; color: var(--danger-light);">${formatCurrency(r.totalVentasCosto)}</td>
         </tr>
         <tr style="border-top: 2px solid var(--border-color); background: rgba(255,255,255,0.02);">
             <td style="font-weight: 700; color: var(--text-primary);">TOTAL EGRESOS</td>
@@ -2252,29 +2293,41 @@ BAILA CON WALLY - REPORTE MENSUAL OPERATIVO
 Período: ${r.mesLabel}
 ${line}
 
-RESUMEN FINANCIERO:
-- Ingresos Recaudados (Real): ${formatCurrency(r.totalRecaudado)}
-- Ingresos Pendientes de Cobro: ${formatCurrency(r.totalPendiente)}
-- Total Facturado Esperado: ${formatCurrency(r.totalEsperado)}
+RESUMEN ACADÉMICO (CUOTAS):
+- Ingresos de Cuotas Cobradas: ${formatCurrency(r.recaudadoCuotas)}
+- Ingresos Pendientes de Cuotas: ${formatCurrency(r.totalPendiente)}
+- Total Facturado de Cuotas Esperado: ${formatCurrency(r.totalEsperado)}
+
+RESUMEN TIENDA (REMERS/BUZOS):
+- Ingresos por Prendas Cobradas: ${formatCurrency(r.totalVentasRecaudado)}
+- Costos de Prendas (Fábrica): ${formatCurrency(r.totalVentasCosto)}
+- Margen Neto Tienda: ${formatCurrency(r.totalVentasRecaudado - r.totalVentasCosto)}
+
+EGRESOS OPERATIVOS ACADEMIA:
+- Gastos de Alquileres de Salón: ${formatCurrency(r.totalAlquileres)}
+- Gastos de Logística/Combustible: ${formatCurrency(r.gastoCombustible)}
+
 ${separator}
-COBROS POR MÉTODO DE PAGO:
+RESUMEN COMBINADO DE LA ACADEMIA:
+- RECAUDADO BRUTO TOTAL (Cuotas + Tienda): ${formatCurrency(r.totalRecaudado)}
+- EGRESOS TOTALES (Operativos + Tienda): ${formatCurrency(r.totalGastos)}
+- => CAJA NETA ACADEMIA REAL: ${formatCurrency(r.cajaNeta)}
+${separator}
+
+COBROS DE CUOTAS POR MÉTODO DE PAGO:
 - Transferencia Bancaria: ${formatCurrency(r.totalTransferencia)}
 - Efectivo: ${formatCurrency(r.totalEfectivo)}
 - Mercado Pago: ${formatCurrency(r.totalMercadoPago)}
 ${separator}
-- Gastos de Alquileres: ${formatCurrency(r.totalAlquileres)}
-- Gasto de Combustible: ${formatCurrency(r.gastoCombustible)}
-- TOTAL EGRESOS OPERATIVOS: ${formatCurrency(r.totalGastos)}
-${separator}
-=> CAJA NETA REAL LIBRE: ${formatCurrency(r.cajaNeta)}
 
-MÉTRICAS OPERATIVAS:
+DESGLOSE DE INGRESOS POR CLASE (SÓLO CUOTAS):
+${sedesTexto}${separator}
+
+MÉTRICAS OPERATIVAS DE ASISTENCIA:
 - Alumnos Activos Matriculados: ${r.alumnosActivosCount}
 - Clases Dictadas / Asistencias: ${r.asistenciasMesCount}
 - Tasa de Asistencia General: ${r.tasaPresentismo}%
-
-DESGLOSE DE INGRESOS POR CLASE:
-${sedesTexto}${line}
+${line}
 Generado automáticamente por Wally CRM.`;
 
     navigator.clipboard.writeText(texto).then(() => {
@@ -2852,7 +2905,7 @@ function renderFinanzasPersonales() {
         const consolidadoCaja = consolidadoIngresos - consolidadoEgresos;
         
         document.getElementById("consolidado-total-ingresos").innerText = formatCurrency(consolidadoIngresos);
-        document.getElementById("consolidado-sub-ingresos").innerText = `Clases (${formatCurrency(academiaIngresos)}) + Personal (${formatCurrency(personalIngresos)})`;
+        document.getElementById("consolidado-sub-ingresos").innerText = `Academia (${formatCurrency(academiaIngresos)}) + Personal (${formatCurrency(personalIngresos)})`;
         
         document.getElementById("consolidado-total-egresos").innerText = formatCurrency(consolidadoEgresos);
         document.getElementById("consolidado-sub-egresos").innerText = `Academia (${formatCurrency(academiaEgresos)}) + Personal (${formatCurrency(personalEgresos)})`;
