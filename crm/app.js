@@ -2100,7 +2100,7 @@ function getReportData() {
         ? Math.min(100, Math.round((asistenciasMes.length / slotsEsperadosTotal) * 100))
         : 0;
         
-    // Agrupar Ingresos por Sede (distribución proporcional para alumnos con múltiples actividades)
+    // Agrupar Ingresos por Sede (distribución para alumnos con múltiples actividades)
     const sedesResumen = db.sedes.map(Sede => {
         // Contar todos los alumnos que asisten a esta sede (ya sea clase principal o extra)
         const alumnosSede = db.alumnos.filter(al => al.sedeId === Sede.id || al.sedeExtraId === Sede.id);
@@ -2110,40 +2110,28 @@ function getReportData() {
             const al = db.alumnos.find(a => a.id === liq.alumnoId);
             if (!al || liq.estado !== "Pagado") return;
             
-            // Si es la clase principal del alumno
-            if (al.sedeId === Sede.id) {
-                const freq = al.frecuencia;
-                const base1 = Sede.precios[freq] || 0;
-                
-                let base2 = 0;
-                if (al.sedeExtraId && al.frecuenciaExtra) {
-                    const SedeExtra = db.sedes.find(s => s.id === al.sedeExtraId);
-                    if (SedeExtra) {
-                        base2 = SedeExtra.precios[al.frecuenciaExtra] || 0;
-                    }
-                }
-                
-                const montoBase = base1 + base2;
-                if (montoBase > 0) {
-                    recaudadoSede += liq.montoNeto * (base1 / montoBase);
-                } else {
-                    recaudadoSede += liq.montoNeto; // Si no hay precios, todo a la principal
+            // Calcular base de la sede extra (actividad secundaria)
+            let base2 = 0;
+            if (al.sedeExtraId && al.frecuenciaExtra) {
+                const SedeExtra = db.sedes.find(s => s.id === al.sedeExtraId);
+                if (SedeExtra) {
+                    base2 = SedeExtra.precios[al.frecuenciaExtra] || 0;
                 }
             }
             
-            // Si es la clase secundaria (extra) del alumno
+            // La actividad secundaria recibe su costo fijo configurado (o el total pagado si este es menor)
+            const extraShare = Math.min(liq.montoNeto, base2);
+            // La actividad principal absorbe cualquier descuento o diferencia restante
+            const principalShare = Math.max(0, liq.montoNeto - extraShare);
+            
+            // Si la sede evaluada es la principal del alumno
+            if (al.sedeId === Sede.id) {
+                recaudadoSede += principalShare;
+            }
+            
+            // Si la sede evaluada es la extra del alumno
             if (al.sedeExtraId === Sede.id) {
-                const SedePrincipal = db.sedes.find(s => s.id === al.sedeId);
-                const freqPrincipal = al.frecuencia;
-                const base1 = SedePrincipal ? (SedePrincipal.precios[freqPrincipal] || 0) : 0;
-                
-                const freqExtra = al.frecuenciaExtra;
-                const base2 = Sede.precios[freqExtra] || 0;
-                
-                const montoBase = base1 + base2;
-                if (montoBase > 0) {
-                    recaudadoSede += liq.montoNeto * (base2 / montoBase);
-                }
+                recaudadoSede += extraShare;
             }
         });
         
